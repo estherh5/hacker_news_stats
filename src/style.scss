@@ -1,0 +1,351 @@
+$main-font: 'Lekton', sans-serif;
+$title-color: #ff8d00;
+$primary-color-mobile: #ffff00;
+$secondary-color-mobile: #000000;
+$primary-color-desktop: #3f00ff;
+$secondary-color-desktop: #f0f0f0;
+
+
+@mixin flex {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+@mixin flex-column {
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  flex-direction: column;
+}
+
+@mixin flex-row {
+  -webkit-box-orient: horizontal;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: row;
+  -ms-flex-direction: row;
+  flex-direction: row;
+}
+
+@mixin flex-wrap {
+  -webkit-flex-wrap: wrap;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+}
+
+@mixin align-center {
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+@mixin justify-center {
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+}
+
+
+body {
+  height: 100%;
+  width: 100%;
+  padding: 0px;
+  margin: 0px;
+  @include flex;
+  @include flex-column;
+  @include align-center;
+  @include justify-center;
+  color: $secondary-color-mobile;
+}
+
+body, td {
+  font-family: $main-font;
+  font-size: 10pt;
+}
+
+#header {
+  z-index: 3;
+}
+
+a:link, button {
+  padding: 0px;
+  border: none;
+  outline: none;
+  background: none;
+  font-size: inherit;
+  color: $secondary-color-mobile;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+a:visited {
+  color: #b3b3b3;
+  text-decoration: none;
+}
+
+#footer {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  color: $title-color;
+}
+
+#title {
+  position: fixed;
+  margin-top: 22px;
+  top: 0px;
+  font-family: 'Cutive Mono', monospace;
+  font-size: 28px;
+  font-weight: bold;
+  font-variant: all-petite-caps;
+  color: $title-color;
+  z-index: 4;
+}
+
+table {
+  border-collapse: initial;
+}
+
+#main-table {
+  height: 100%;
+  width: 100%;
+  margin: 0px;
+  background-color: $primary-color-mobile;
+}
+
+tbody {
+  width: inherit;
+}
+
+tr {
+  width: 100%;
+}
+
+#top-spacer {
+  position: fixed;
+  height: 10px;
+  width: inherit;
+  display: none;
+  background-color: $secondary-color-desktop;
+  z-index: 2;
+}
+
+#header-row {
+  position: fixed;
+  width: inherit;
+  z-index: 1;
+}
+
+td {
+  height: inherit !important;
+  color: $secondary-color-mobile;
+}
+
+#header-cell {
+  @include flex;
+  @include flex-column;
+  @include align-center;
+  @include justify-center;
+  background-color: $primary-color-mobile;
+}
+
+#buttons {
+  margin-top: 60px;
+  margin-bottom: 10px;
+}
+
+button {
+  font-family: $main-font;
+  font-size: 13px;
+}
+
+button:focus {
+  outline: none;
+}
+
+button.selected {
+  font-weight: bold;
+  color: $title-color;
+}
+
+#header-bottom-spacer {
+  display: block;
+}
+
+#divider-one {
+  background-color: #00e7ff;
+}
+
+#divider-two {
+  background-color: #6eff00;
+}
+
+#divider-three {
+  background-color: #ff6a00;
+}
+
+#table-top-margin {
+  height: 99px;
+}
+
+#inner-table-row {
+  height: 100%;
+}
+
+#inner-table {
+  width: 100%;
+  background-color: $primary-color-mobile;
+}
+
+.stat-row {
+  @include flex;
+  @include flex-row;
+  @include flex-wrap;
+  @include align-center;
+  @include justify-center;
+}
+
+.stat-cell {
+  @include flex;
+  @include flex-row;
+  @include align-center;
+  @include justify-center;
+}
+
+.chart-container {
+  width: 100%;
+  max-width: 300px;
+  height: 400px;
+  margin: 10px;
+  @include flex;
+  @include flex-column;
+  @include align-center;
+  @include justify-center;
+}
+
+#loading-image {
+  height: 50px;
+  width: 50px;
+  display: none;
+}
+
+.loading {
+  border: none;
+  display: block !important;
+  background-color: rgba(0, 0, 0, 0);
+  animation-name: rotate;
+  animation-duration: 5s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotateZ(0deg);
+  }
+
+  to {
+    transform: rotateZ(360deg);
+  }
+}
+
+.highcharts-container {
+  height: unset !important;
+  width: unset !important;
+  overflow: hidden !important;
+}
+
+.highcharts-root {
+  height: 400px;
+  width: 100%;
+  max-width: 300px;
+  color: $secondary-color-mobile !important;
+  fill: $secondary-color-mobile !important;
+}
+
+.highcharts-series, .highcharts-axis-labels text, .highcharts-axis-labels span, .highcharts-legend-item text {
+  font-family: $main-font;
+  color: $secondary-color-mobile !important;
+  fill: $secondary-color-mobile !important;
+}
+
+.highcharts-title {
+  font-size: 20px !important;
+  color: $title-color !important;
+  fill: $title-color !important;
+}
+
+#divider-four {
+  background-color: $title-color;
+}
+
+#bottom-spacer {
+  height: 15px;
+}
+
+@media only screen and (min-width: 750px) {
+  body {
+    background-color: $secondary-color-desktop;
+  }
+
+  body, td {
+    color: $secondary-color-desktop;
+  }
+
+  a:link, button {
+    color: $secondary-color-desktop;
+  }
+
+  a:visited {
+    color: #c2c2c2;
+  }
+
+  #title {
+    margin-top: 10px;
+    font-size: 42px;
+  }
+
+  #main-table {
+    height: 85%;
+    width: 85%;
+    background-color: $primary-color-desktop;
+  }
+
+  #top-spacer {
+    display: block;
+  }
+
+  #header-cell {
+    background-color: $primary-color-desktop;
+  }
+
+  #divider-two {
+    background-color: #ffff00;
+  }
+
+  #table-top-margin {
+    height: 89px;
+  }
+
+  #inner-table {
+    background-color: $primary-color-desktop;
+  }
+
+  .chart-container {
+    max-width: 500px;
+  }
+
+  .highcharts-root {
+    max-width: 500px;
+    color: $secondary-color-desktop !important;
+    fill: $secondary-color-desktop !important;
+  }
+
+  .highcharts-series, .highcharts-axis-labels text, .highcharts-axis-labels span, .highcharts-legend-item text {
+    color: $secondary-color-desktop !important;
+    fill: $secondary-color-desktop !important;
+  }
+}
