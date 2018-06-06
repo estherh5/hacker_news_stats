@@ -26,6 +26,8 @@ gulp.task('build', gulp.series(
   'html')
 );
 
+gulp.task('watch', updateBuild);
+
 
 // Compile Sass script by preprocessing it to CSS and minifying it
 function compileSass() {
@@ -79,4 +81,10 @@ function compileHtml() {
 
   return target
     .pipe(inject(sources, {relative: true}));
+}
+
+
+// Update build whenever source file is changed
+function updateBuild() {
+  return gulp.watch('./src/*', gulp.series('build'));
 }
