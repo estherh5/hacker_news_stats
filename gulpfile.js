@@ -2,20 +2,17 @@ var gulp = require('gulp');
 var sass = require('gulp-sass');
 var minifyCss = require('gulp-minify-css');
 var rename = require('gulp-rename');
-var concat = require('gulp-concat');
-var babel = require('gulp-babel');
-var uglify = require('gulp-uglify');
-var jsmin = require('gulp-jsmin');
+var browserify = require('browserify');
+var babelify = require('babelify');
+var source = require('vinyl-source-stream');
+var buffer = require('vinyl-buffer');
 var inject = require('gulp-inject');
 
 
 // Gulp tasks for compiling CSS, JS, images, HTML
 gulp.task('css', compileSass);
 
-gulp.task('js', gulp.series(
-  compileJs,
-  concatJs
-));
+gulp.task('js', compileJs);
 
 gulp.task('images', compileImages);
 
@@ -41,23 +38,18 @@ function compileSass() {
 
 // Compile main project script by transpiling, uglifying, and minifying it
 function compileJs() {
-  return gulp.src('./src/*.js')
-    .pipe(babel({presets: ['env']}))
-    .pipe(uglify())
-    .pipe(jsmin())
+  var browserified = browserify({
+    entries: './src/main.js',
+    debug: true,
+    transform: [babelify.configure({
+          presets: ['env']
+        }), 'uglifyify']
+  });
+
+  return browserified.bundle()
+    .pipe(source('./src/*.js'))
+    .pipe(buffer())
     .pipe(rename('all.min.js'))
-    .pipe(gulp.dest('./dist'));
-}
-
-
-// Concatenate required package scripts and main project script
-function concatJs() {
-  return gulp.src(['./node_modules/fetch-polyfill/fetch.js',
-    './node_modules/highcharts/highcharts.js',
-    './node_modules/highcharts/highcharts-more.js',
-    './node_modules/highcharts/modules/wordcloud.js', './dist/all.min.js'])
-    .pipe(concat('all.js'))
-    .pipe(rename({suffix: '.min'}))
     .pipe(gulp.dest('./dist'));
 }
 

@@ -9,6 +9,11 @@ var wordCloud;
 var bubbleError;
 var bubbleChart;
 
+var Highcharts = require('highcharts'); // Highcharts
+require('highcharts/highcharts-more')(Highcharts); // Highcharts extras
+require('highcharts/modules/wordcloud')(Highcharts); // Highcharts word cloud
+require('whatwg-fetch'); // Fetch polyfill
+
 
 // Define load functions
 window.onload = function() {
