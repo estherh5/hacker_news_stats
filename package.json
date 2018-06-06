@@ -1,5 +1,12 @@
 {
   "name": "hacker_news_stats",
+  "jest": {
+    "setupFiles": [
+      "<rootDir>/setupFile.js",
+      "jest-localstorage-mock"
+    ],
+    "verbose": true
+  },
   "version": "1.0.0",
   "description": "A display of statistics from data scraped from Y Combinator's news website, Hacker News",
   "dependencies": {
@@ -23,11 +30,14 @@
     "gulp-concat": "^2.6.1",
     "gulp-inject": "^4.3.2",
     "gulp-minify-css": "^1.2.4",
-    "gulp-sass": "^4.0.1"
+    "gulp-sass": "^4.0.1",
+    "jest": "^23.1.0",
+    "jest-fetch-mock": "^1.6.2",
+    "jest-localstorage-mock": "^2.2.0"
   },
   "scripts": {
     "build": "gulp build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --coverage"
   },
   "repository": {
     "type": "git",

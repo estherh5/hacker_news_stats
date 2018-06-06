@@ -890,3 +890,7 @@ function resize(chart, container) {
   var width = container.offsetWidth;
   chart.setSize(width, height);
 }
+
+
+export { getPostTypes, getCommentCounts, getCommentWords,
+  getUserCommentCounts };
