@@ -12,6 +12,7 @@ var bubbleChart;
 var Highcharts = require('highcharts'); // Highcharts
 require('highcharts/highcharts-more')(Highcharts); // Highcharts extras
 require('highcharts/modules/wordcloud')(Highcharts); // Highcharts word cloud
+require("babel-polyfill"); // Babel polyfill
 require('whatwg-fetch'); // Fetch polyfill
 
 
@@ -115,32 +116,32 @@ function getPostTypes(timePeriod) {
           return;
         })
 
-        .then(function(response) {
+        .then(async function(response) {
           if (response) {
             if (response.ok) {
-              response.json().then(function(types) {
-                // Remove loading image
-                loadingImage.classList.remove('loading');
-                pieContainer.removeChild(loadingImage);
+              var types = await response.json();
 
-                // Remove error message if it is displayed
-                if (pieError && pieError.parentNode == pieContainer) {
-                  pieContainer.removeChild(pieError);
-                }
+              // Remove loading image
+              loadingImage.classList.remove('loading');
+              pieContainer.removeChild(loadingImage);
 
-                // Display pie chart of post types
-                displayPieChart(types);
+              // Remove error message if it is displayed
+              if (pieError && pieError.parentNode == pieContainer) {
+                pieContainer.removeChild(pieError);
+              }
 
-                // Store post types in sessionStorage for session loading
-                sessionStorage.setItem('hn-post-types-' + timePeriod, JSON
-                  .stringify(types));
+              // Display pie chart of post types
+              displayPieChart(types);
 
-                // Store post types in localStorage for offline loading
-                localStorage.setItem('hn-post-types-' + timePeriod, JSON
-                  .stringify(types));
+              // Store post types in sessionStorage for session loading
+              sessionStorage.setItem('hn-post-types-' + timePeriod, JSON
+                .stringify(types));
 
-                return types;
-              });
+              // Store post types in localStorage for offline loading
+              localStorage.setItem('hn-post-types-' + timePeriod, JSON
+                .stringify(types));
+
+              return types;
             }
           }
 
@@ -305,32 +306,32 @@ function getCommentCounts(timePeriod) {
           return;
         })
 
-        .then(function(response) {
+        .then(async function(response) {
           if (response) {
             if (response.ok) {
-              response.json().then(function(posts) {
-                // Remove loading image
-                loadingImage.classList.remove('loading');
-                barContainer.removeChild(loadingImage);
+              var posts = await response.json();
 
-                // Remove error message if it is displayed
-                if (barError && barError.parentNode == barContainer) {
-                  barContainer.removeChild(barError);
-                }
+              // Remove loading image
+              loadingImage.classList.remove('loading');
+              barContainer.removeChild(loadingImage);
 
-                // Display bar chart of posts
-                displayBarChart(posts);
+              // Remove error message if it is displayed
+              if (barError && barError.parentNode == barContainer) {
+                barContainer.removeChild(barError);
+              }
 
-                // Store posts in sessionStorage for session loading
-                sessionStorage.setItem('hn-post-comment-counts-' + timePeriod,
-                  JSON.stringify(posts));
+              // Display bar chart of posts
+              displayBarChart(posts);
 
-                // Store posts in localStorage for offline loading
-                localStorage.setItem('hn-post-comment-counts-' + timePeriod,
-                  JSON.stringify(posts));
+              // Store posts in sessionStorage for session loading
+              sessionStorage.setItem('hn-post-comment-counts-' + timePeriod,
+                JSON.stringify(posts));
 
-                return posts;
-              });
+              // Store posts in localStorage for offline loading
+              localStorage.setItem('hn-post-comment-counts-' + timePeriod,
+                JSON.stringify(posts));
+
+              return posts;
             }
           }
 
@@ -529,32 +530,32 @@ function getCommentWords(timePeriod) {
           return;
         })
 
-        .then(function(response) {
+        .then(async function(response) {
           if (response) {
             if (response.ok) {
-              response.json().then(function(words) {
-                // Remove loading image
-                loadingImage.classList.remove('loading');
-                wordContainer.removeChild(loadingImage);
+              var words = await response.json();
 
-                // Remove error message if it is displayed
-                if (wordError && wordError.parentNode == wordContainer) {
-                  wordContainer.removeChild(wordError);
-                }
+              // Remove loading image
+              loadingImage.classList.remove('loading');
+              wordContainer.removeChild(loadingImage);
 
-                // Display word cloud of words
-                displayWordCloud(words);
+              // Remove error message if it is displayed
+              if (wordError && wordError.parentNode == wordContainer) {
+                wordContainer.removeChild(wordError);
+              }
 
-                // Store words in sessionStorage for session loading
-                sessionStorage.setItem('hn-comment-words-' + timePeriod, JSON
-                  .stringify(words));
+              // Display word cloud of words
+              displayWordCloud(words);
 
-                // Store words in localStorage for offline loading
-                localStorage.setItem('hn-comment-words-' + timePeriod, JSON
-                  .stringify(words));
+              // Store words in sessionStorage for session loading
+              sessionStorage.setItem('hn-comment-words-' + timePeriod, JSON
+                .stringify(words));
 
-                return words;
-              });
+              // Store words in localStorage for offline loading
+              localStorage.setItem('hn-comment-words-' + timePeriod, JSON
+                .stringify(words));
+
+              return words;
             }
           }
 
@@ -702,34 +703,34 @@ function getUserCommentCounts(timePeriod) {
           return;
         })
 
-        .then(function(response) {
+        .then(async function(response) {
           if (response) {
             if (response.ok) {
-              response.json().then(function(users) {
-                // Remove loading image
-                loadingImage.classList.remove('loading');
-                bubbleContainer.removeChild(loadingImage);
+              var users = await response.json();
 
-                // Remove error message if it is displayed
-                if (bubbleError && bubbleError
-                  .parentNode == bubbleContainer) {
-                    bubbleContainer.removeChild(bubbleError);
-                  }
+              // Remove loading image
+              loadingImage.classList.remove('loading');
+              bubbleContainer.removeChild(loadingImage);
 
-                /* Display bubble chart of user data, with bubble size
-                representing user's overall word count */
-                displayBubbleChart(users);
+              // Remove error message if it is displayed
+              if (bubbleError && bubbleError
+                .parentNode == bubbleContainer) {
+                  bubbleContainer.removeChild(bubbleError);
+                }
 
-                // Store user data in sessionStorage for session loading
-                sessionStorage.setItem('hn-user-comment-counts-' + timePeriod,
-                  JSON.stringify(users));
+              /* Display bubble chart of user data, with bubble size
+              representing user's overall word count */
+              displayBubbleChart(users);
 
-                // Store user data in localStorage for offline loading
-                localStorage.setItem('hn-user-comment-counts-' + timePeriod,
-                  JSON.stringify(users));
+              // Store user data in sessionStorage for session loading
+              sessionStorage.setItem('hn-user-comment-counts-' + timePeriod,
+                JSON.stringify(users));
 
-                return users;
-              });
+              // Store user data in localStorage for offline loading
+              localStorage.setItem('hn-user-comment-counts-' + timePeriod,
+                JSON.stringify(users));
+
+              return users;
             }
           }
 

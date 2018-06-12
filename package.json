@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "A display of statistics from data scraped from Y Combinator's news website, Hacker News",
   "dependencies": {
+    "fetch-polyfill": "^0.8.2",
+    "babel-polyfill": "^6.26.0",
     "gulp-rename": "^1.2.3",
     "highcharts": "^6.1.0",
     "uglifyify": "^5.0.0",
