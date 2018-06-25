@@ -1,4 +1,8 @@
 // Define global variables
+var siteMenuOpen = false; // Stores if site menu is open or closed
+var profileLink;
+var accountLink;
+var signInLink;
 var selectedButton = document.getElementById('hour');
 var pieError;
 var pieChart;
@@ -28,6 +32,12 @@ window.onload = function() {
     }
   }
 
+  // Create page header with site menu and account menu
+  createPageHeader();
+
+  // Check if user is logged into Crystal Prism
+  checkIfLoggedIn();
+
   // Get breakdown of post types from the past hour
   getPostTypes('hour');
 
@@ -41,6 +51,251 @@ window.onload = function() {
   getUserCommentCounts('hour');
 
   return;
+}
+
+
+// Create page header with site menu and account menu
+function createPageHeader() {
+  var header = document.createElement('div');
+  header.id = 'header';
+  var headerContainer = document.createElement('div');
+  headerContainer.id = 'header-container';
+  header.appendChild(headerContainer);
+
+  // Create project navigation menu
+  var iconContainer = document.createElement('div');
+  iconContainer.id = 'site-menu-icon-container';
+
+  var menuIcon = document.createElement('img');
+  menuIcon.id = 'site-menu-icon';
+  menuIcon.title = 'Site menu';
+  menuIcon.src = 'https://crystalprism.io/images/site-menu-icon-shadow.svg';
+
+  headerContainer.appendChild(iconContainer);
+  iconContainer.appendChild(menuIcon);
+
+  // Create site menu table
+  var siteMenu = document.createElement('table');
+  siteMenu.id = 'site-menu';
+  siteMenu.classList.add('closed');
+
+  var siteMenuSpacer = document.createElement('tr');
+  siteMenuSpacer.id = 'site-menu-spacer-row';
+
+  headerContainer.appendChild(siteMenu);
+  siteMenu.appendChild(siteMenuSpacer);
+
+  // Create menu rows with icons and links to each project
+  var projectLinks = ['/', '/timespace/', '/shapes-in-rain/',
+    '/rhythm-of-life/', '/canvashare/', '/thought-writer/', '/vicarious/',
+    'https://hn-stats.crystalprism.io/', 'https://pause.crystalprism.io/',
+    '/'];
+
+  // Add domain root to each link unless it is already provided
+  projectLinks = projectLinks.map(function(link) {
+    if (!link.includes('https')) {
+      return 'https://crystalprism.io/' + link;
+    }
+
+    return link;
+  });
+
+  var projectTitles = ['Home', 'Timespace', 'Shapes In Rain',
+    'Rhythm of Life', 'CanvaShare', 'Thought Writer', 'Vicarious',
+    'Hacker News Stats', 'Pause', 'Account'];
+
+  for (var i = 0; i < projectLinks.length; i++) {
+    var menuRow = document.createElement('tr');
+    menuRow.classList.add('site-menu-row');
+
+    if (i == projectLinks.length - 1) {
+      menuRow.dataset.link = projectLinks[i] + 'user/sign-in/';
+    } else {
+      menuRow.dataset.link = projectLinks[i];
+    }
+
+    menuRow.addEventListener('click', function() {
+      window.location = this.dataset.link;
+      return;
+    }, false);
+
+    var menuImageCell = document.createElement('td');
+    menuImageCell.classList.add('site-menu-image-cell');
+
+    var menuImage = document.createElement('img');
+    menuImage.classList.add('site-menu-image');
+    menuImage.src = projectLinks[i] + 'favicon.ico';
+
+    var menuTextCell = document.createElement('td');
+    menuTextCell.classList.add('site-menu-text-cell');
+
+    var menuText = document.createElement('div');
+    menuText.classList.add('site-menu-text');
+    menuText.innerHTML = projectTitles[i];
+
+    menuRow.appendChild(menuImageCell);
+    menuImageCell.appendChild(menuImage);
+    menuRow.appendChild(menuTextCell);
+    menuTextCell.appendChild(menuText);
+    siteMenu.appendChild(menuRow);
+  }
+
+  // Toggle site menu when user clicks menu icon
+  menuIcon.onmousedown = toggleSiteMenu;
+
+  /* Create account menu with links to profile, create account page, and sign
+  in page */
+  var accountMenu = document.createElement('div');
+  accountMenu.id = 'account-menu';
+  profileLink = document.createElement('a');
+  profileLink.id = 'profile-link';
+  accountLink = document.createElement('a');
+  accountLink.id = 'account-link';
+  accountLink.href = 'https://crystalprism.io/user/create-account/';
+  signInLink = document.createElement('a');
+  signInLink.id = 'sign-in-link';
+  signInLink.href = 'https://crystalprism.io/user/sign-in/';
+  headerContainer.appendChild(accountMenu);
+  accountMenu.appendChild(profileLink);
+  accountMenu.appendChild(accountLink);
+  accountMenu.appendChild(signInLink);
+
+  // Insert header before first element in body
+  document.body.insertAdjacentElement('afterbegin', header);
+
+  return;
+}
+
+
+// Open/close site menu
+function toggleSiteMenu() {
+  var siteMenu = document.getElementById('site-menu');
+
+  // Close menu if it is open
+  if (siteMenuOpen) {
+    siteMenu.classList.remove('opened');
+    siteMenu.classList.add('closed');
+
+    // Set menu icon back to shadow version
+    document.getElementById('site-menu-icon')
+      .src = 'https://crystalprism.io/images/site-menu-icon-shadow.svg';
+
+    siteMenuOpen = false;
+
+    return;
+  }
+
+  // Otherwise, open menu
+  siteMenu.classList.remove('closed');
+  siteMenu.classList.add('opened');
+
+  // Set menu icon to non-shadow version
+  document.getElementById('site-menu-icon')
+    .src = 'https://crystalprism.io/images/site-menu-icon.svg';
+
+  siteMenuOpen = true;
+
+  return;
+}
+
+
+// Close site menu when user clicks outside of it
+window.addEventListener('click', function(e) {
+  if (siteMenuOpen && e.target != document.getElementById('site-menu-icon') &&
+    !document.getElementById('site-menu').contains(e.target)) {
+      toggleSiteMenu();
+    }
+
+  return;
+
+}, false);
+
+
+// Check if user is logged into Crystal Prism by assessing JWT token's validity
+function checkIfLoggedIn() {
+  // If user does not have a token stored locally, set account menu to default
+  if (!localStorage.getItem('token')) {
+    accountLink.innerHTML = 'Create Account';
+    signInLink.innerHTML = 'Sign In';
+
+    // Store current window for user to return to after logging in
+    signInLink.onclick = function() {
+      sessionStorage.setItem('previous-window', window.location.href);
+      return;
+    }
+
+    return false;
+  }
+
+  /* Otherwise, check if the user is logged in by sending their token to the
+  server */
+  return fetch('https://api.crystalprism.io/api/user/verify', {
+    headers: {'Authorization': 'Bearer ' + localStorage.getItem('token')},
+    method: 'GET',
+  })
+
+    // Set account menu to default if server is down
+    .catch(function(error) {
+      accountLink.innerHTML = 'Create Account';
+      signInLink.innerHTML = 'Sign In';
+
+      // Store current window for user to return to after logging in
+      signInLink.onclick = function() {
+        sessionStorage.setItem('previous-window', window.location.href);
+        return;
+      }
+
+      return false;
+    })
+
+    .then(function(response) {
+      /* If server verifies token is correct, display link to profile, My
+      Account page, and Sign In page (with "Sign Out" title) */
+      if (response.ok) {
+        response.json().then(function(payload) {
+          // Set localStorage username to payload username
+          localStorage.setItem('username', payload['username']);
+
+          profileLink.innerHTML = payload['username'];
+          profileLink.href = 'https://crystalprism.io/user/?username=' +
+            payload['username'];
+          accountLink.innerHTML = 'My Account';
+          accountLink.href = 'https://crystalprism.io/user/my-account/';
+          signInLink.innerHTML = 'Sign Out';
+
+          /* Send request to log user out when Sign In page link ("Sign Out"
+          title) is clicked */
+          signInLink.onclick = function() {
+            sessionStorage.setItem('account-request', 'logout');
+            return;
+          }
+        });
+        return true;
+      }
+
+      /* If server responds with unauthorized status, set account menu to
+      default and remove username and token from localStorage */
+      if (response.status == 401) {
+        localStorage.removeItem('username');
+        localStorage.removeItem('token');
+        accountLink.innerHTML = 'Create Account';
+        signInLink.innerHTML = 'Sign In';
+
+        // Store current window for user to return to after logging in
+        signInLink.onclick = function() {
+          sessionStorage.setItem('previous-window', window.location.href);
+          return;
+        }
+
+        // Redirect to Sign In page if user is on My Account page
+        if (currentPath == 'my-account') {
+          sessionStorage.setItem('account-request', 'logout');
+          window.location = '../sign-in/';
+        }
+      }
+
+      return false;
+    });
 }
 
 
