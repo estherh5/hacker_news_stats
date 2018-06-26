@@ -1,0 +1,13 @@
+/* TEAM */
+Developer: Esther Hoffman
+Contact: hoffman.esther@gmail.com
+Location: Philadelphia, USA
+
+/* SITE */
+Site name: Esther Hoffman
+Site URL: https://hn-stats.crystalprism.io
+Web design: Esther Hoffman
+Contact: https://crystalprism.io
+Location: USA
+Built with: HTML5, CSS3, Sass, JavaScript, Python
+Launched: 2018

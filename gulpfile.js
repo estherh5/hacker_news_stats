@@ -9,17 +9,17 @@ var buffer = require('vinyl-buffer');
 var inject = require('gulp-inject');
 
 
-// Gulp tasks for compiling CSS, JS, images, HTML
+// Gulp tasks for compiling CSS, JS, assets, HTML
 gulp.task('css', compileSass);
 
 gulp.task('js', compileJs);
 
-gulp.task('images', compileImages);
+gulp.task('assets', compileAssets);
 
 gulp.task('html', compileHtml);
 
 gulp.task('build', gulp.series(
-  gulp.parallel('css', 'js', 'images'),
+  gulp.parallel('css', 'js', 'assets'),
   'html')
 );
 
@@ -54,9 +54,12 @@ function compileJs() {
 }
 
 
-// Add images to dist folder
-function compileImages() {
+// Add assets and images to dist folder
+function compileAssets() {
   gulp.src('./src/favicon.ico')
+    .pipe(gulp.dest('./dist'));
+
+  gulp.src('./src/assets/*')
     .pipe(gulp.dest('./dist'));
 
   return gulp.src('./src/images/*')
