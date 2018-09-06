@@ -346,8 +346,10 @@ function getPostTypes(timePeriod) {
         displayed (i.e., prevent multiple errors from appearing) */
         .catch(function(error) {
           // Remove loading image
-          loadingImage.classList.remove('loading');
-          pieContainer.removeChild(loadingImage);
+          if (pieContainer.contains(loadingImage)) {
+            loadingImage.classList.remove('loading');
+            pieContainer.removeChild(loadingImage);
+          }
 
           // Display cached post types data if it is stored in localStorage
           if (localStorage.getItem('hn-post-types-' + timePeriod)) {
@@ -377,8 +379,10 @@ function getPostTypes(timePeriod) {
               var types = await response.json();
 
               // Remove loading image
-              loadingImage.classList.remove('loading');
-              pieContainer.removeChild(loadingImage);
+              if (pieContainer.contains(loadingImage)) {
+                loadingImage.classList.remove('loading');
+                pieContainer.removeChild(loadingImage);
+              }
 
               // Remove error message if it is displayed
               if (pieError && pieError.parentNode == pieContainer) {
@@ -402,8 +406,10 @@ function getPostTypes(timePeriod) {
 
           else {
             // Remove loading image
-            loadingImage.classList.remove('loading');
-            pieContainer.removeChild(loadingImage);
+            if (pieContainer.contains(loadingImage)) {
+              loadingImage.classList.remove('loading');
+              pieContainer.removeChild(loadingImage);
+            }
 
             // Display error message if the server sends an error
             if (!pieError || pieError.parentNode != pieContainer) {
@@ -538,8 +544,10 @@ function getCommentCounts(timePeriod) {
         displayed (i.e., prevent multiple errors from appearing) */
         .catch(function(error) {
           // Remove loading image
-          loadingImage.classList.remove('loading');
-          barContainer.removeChild(loadingImage);
+          if (barContainer.contains(loadingImage)) {
+            loadingImage.classList.remove('loading');
+            barContainer.removeChild(loadingImage);
+          }
 
           // Display cached post data if it is stored in localStorage
           if (localStorage.getItem('hn-post-comment-counts-' + timePeriod)) {
@@ -567,8 +575,10 @@ function getCommentCounts(timePeriod) {
               var posts = await response.json();
 
               // Remove loading image
-              loadingImage.classList.remove('loading');
-              barContainer.removeChild(loadingImage);
+              if (barContainer.contains(loadingImage)) {
+                loadingImage.classList.remove('loading');
+                barContainer.removeChild(loadingImage);
+              }
 
               // Remove error message if it is displayed
               if (barError && barError.parentNode == barContainer) {
@@ -592,8 +602,10 @@ function getCommentCounts(timePeriod) {
 
           else {
             // Remove loading image
-            loadingImage.classList.remove('loading');
-            barContainer.removeChild(loadingImage);
+            if (barContainer.contains(loadingImage)) {
+              loadingImage.classList.remove('loading');
+              barContainer.removeChild(loadingImage);
+            }
 
             // Display error message if the server sends an error
             if (!barError || barError.parentNode != barContainer) {
@@ -762,8 +774,10 @@ function getCommentWords(timePeriod) {
         displayed (i.e., prevent multiple errors from appearing) */
         .catch(function(error) {
           // Remove loading image
-          loadingImage.classList.remove('loading');
-          wordContainer.removeChild(loadingImage);
+          if (wordContainer.contains(loadingImage)) {
+            loadingImage.classList.remove('loading');
+            wordContainer.removeChild(loadingImage);
+          }
 
           // Display cached comment words list if it is stored in localStorage
           if (localStorage.getItem('hn-comment-words-' + timePeriod)) {
@@ -791,8 +805,10 @@ function getCommentWords(timePeriod) {
               var words = await response.json();
 
               // Remove loading image
-              loadingImage.classList.remove('loading');
-              wordContainer.removeChild(loadingImage);
+              if (wordContainer.contains(loadingImage)) {
+                loadingImage.classList.remove('loading');
+                wordContainer.removeChild(loadingImage);
+              }
 
               // Remove error message if it is displayed
               if (wordError && wordError.parentNode == wordContainer) {
@@ -816,8 +832,10 @@ function getCommentWords(timePeriod) {
 
           else {
             // Remove loading image
-            loadingImage.classList.remove('loading');
-            wordContainer.removeChild(loadingImage);
+            if (wordContainer.contains(loadingImage)) {
+              loadingImage.classList.remove('loading');
+              wordContainer.removeChild(loadingImage);
+            }
 
             // Display error message if the server sends an error
             if (!wordError || wordError.parentNode != wordContainer) {
@@ -935,8 +953,10 @@ function getUserCommentCounts(timePeriod) {
         displayed (i.e., prevent multiple errors from appearing) */
         .catch(function(error) {
           // Remove loading image
-          loadingImage.classList.remove('loading');
-          bubbleContainer.removeChild(loadingImage);
+          if (bubbleContainer.contains(loadingImage)) {
+            loadingImage.classList.remove('loading');
+            bubbleContainer.removeChild(loadingImage);
+          }
 
           // Display cached user data if it is stored in localStorage
           if (localStorage.getItem('hn-user-comment-counts-' + timePeriod)) {
@@ -964,8 +984,10 @@ function getUserCommentCounts(timePeriod) {
               var users = await response.json();
 
               // Remove loading image
-              loadingImage.classList.remove('loading');
-              bubbleContainer.removeChild(loadingImage);
+              if (bubbleContainer.contains(loadingImage)) {
+                loadingImage.classList.remove('loading');
+                bubbleContainer.removeChild(loadingImage);
+              }
 
               // Remove error message if it is displayed
               if (bubbleError && bubbleError
@@ -991,8 +1013,10 @@ function getUserCommentCounts(timePeriod) {
 
           else {
             // Remove loading image
-            loadingImage.classList.remove('loading');
-            bubbleContainer.removeChild(loadingImage);
+            if (bubbleContainer.contains(loadingImage)) {
+              loadingImage.classList.remove('loading');
+              bubbleContainer.removeChild(loadingImage);
+            }
 
             // Display error message if the server sends an error
             if (!bubbleError || bubbleError.parentNode != bubbleContainer) {
