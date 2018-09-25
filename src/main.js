@@ -89,7 +89,7 @@ function createPageHeader() {
   var projectLinks = ['/', '/timespace/', '/shapes-in-rain/',
     '/rhythm-of-life/', '/canvashare/', '/thought-writer/', '/vicarious/',
     'https://hn-stats.crystalprism.io/', 'https://pause.crystalprism.io/',
-    'https://marian.crystalprism.io/', '/'];
+    'https://marian.crystalprism.io/', 'https://vroom.crystalprism.io/', '/'];
 
   // Add domain root to each link unless it is already provided
   projectLinks = projectLinks.map(function(link) {
@@ -102,7 +102,7 @@ function createPageHeader() {
 
   var projectTitles = ['Home', 'Timespace', 'Shapes In Rain',
     'Rhythm of Life', 'CanvaShare', 'Thought Writer', 'Vicarious',
-    'Hacker News Stats', 'Pause', 'Marian' 'Account'];
+    'Hacker News Stats', 'Pause', 'Marian', 'Vroom', 'Account'];
 
   for (var i = 0; i < projectLinks.length; i++) {
     var menuRow = document.createElement('tr');
@@ -360,14 +360,12 @@ function getPostTypes(timePeriod) {
           }
 
           // Otherwise, display error
-          else {
-            if (!pieError || pieError.parentNode != pieContainer) {
-              pieError = document.createElement('text');
-              pieError.id = 'error-message';
-              pieError.innerHTML = 'There was an error loading the post ' +
-                'types breakdown. Please refresh the page.';
-              pieContainer.appendChild(pieError);
-            }
+          if (!pieError || pieError.parentNode != pieContainer) {
+            pieError = document.createElement('text');
+            pieError.id = 'error-message';
+            pieError.innerHTML = 'There was an error loading the post ' +
+              'types breakdown. Please refresh the page.';
+            pieContainer.appendChild(pieError);
           }
 
           return;
