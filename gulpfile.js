@@ -7,6 +7,7 @@ var babelify = require('babelify');
 var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
 var inject = require('gulp-inject');
+var replace = require('gulp-replace');
 
 
 // Gulp tasks for compiling CSS, JS, assets, HTML
@@ -75,6 +76,11 @@ function compileHtml() {
   target.pipe(gulp.dest('./dist'));
 
   return target
+    .pipe(replace(
+      '<!-- replace:copyright -->',
+      '&copy; Copyright 2017-' + new Date().getFullYear() +
+      ' <a href="https://crystalprism.io">Crystal Prism</a>'
+    ))
     .pipe(inject(sources, {relative: true}));
 }
 
