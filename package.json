@@ -16,7 +16,7 @@
     "gulp-replace": "^1.0.0",
     "highcharts": "^6.1.0",
     "hoek": "^5.0.4",
-    "uglifyify": "^5.0.0",
+    "uglifyify": "^5.0.2",
     "vinyl-buffer": "^1.0.1",
     "vinyl-source-stream": "^2.0.0",
     "whatwg-fetch": "^2.0.4"
