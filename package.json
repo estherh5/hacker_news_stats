@@ -14,7 +14,7 @@
     "fetch-polyfill": "^0.8.2",
     "gulp-rename": "^1.2.3",
     "gulp-replace": "^1.0.0",
-    "highcharts": "^6.1.0",
+    "highcharts": "^9.0.0",
     "hoek": "^5.0.4",
     "uglifyify": "^5.0.2",
     "vinyl-buffer": "^1.0.1",
