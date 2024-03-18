@@ -19,6 +19,12 @@ require('highcharts/modules/wordcloud')(Highcharts); // Highcharts word cloud
 require("babel-polyfill"); // Babel polyfill
 require('whatwg-fetch'); // Fetch polyfill
 
+// Determine API endpoint based on window location
+if (window.location.hostname == 'hn-stats.crystalprism.io') {
+  var api = 'https://hn-scrape.herokuapp.com/api';
+} else {
+  var api = 'http://localhost:5000/api';
+}
 
 // Define load functions
 window.onload = function() {
@@ -339,8 +345,7 @@ function getPostTypes(timePeriod) {
 
   // Otherwise, load data from server
   else {
-    return fetch('https://hn-scrape.herokuapp.com/api/hacker_news/stats/' +
-      timePeriod + '/post_types')
+    return fetch(`${api}/hacker_news/stats/${timePeriod}/post_types`)
 
         /* Display error message if server is down and error isn't already
         displayed (i.e., prevent multiple errors from appearing) */
@@ -535,8 +540,7 @@ function getCommentCounts(timePeriod) {
 
   // Otherwise, load data from server
   else {
-    return fetch('https://hn-scrape.herokuapp.com/api/hacker_news/stats/' +
-      timePeriod + '/posts_highest_comment_count?count=5')
+    return fetch(`${api}/hacker_news/stats/${timePeriod}/posts_highest_comment_count?count=5`)
 
         /* Display error message if server is down and error isn't already
         displayed (i.e., prevent multiple errors from appearing) */
@@ -765,8 +769,7 @@ function getCommentWords(timePeriod) {
 
   // Otherwise, load data from server
   else {
-    return fetch('https://hn-scrape.herokuapp.com/api/hacker_news/stats/' +
-      timePeriod + '/comment_words?count=50')
+    return fetch(`${api}/hacker_news/stats/${timePeriod}/comment_words?count=50`)
 
         /* Display error message if server is down and error isn't already
         displayed (i.e., prevent multiple errors from appearing) */
@@ -944,8 +947,7 @@ function getUserCommentCounts(timePeriod) {
 
   // Otherwise, load data from server
   else {
-    return fetch('https://hn-scrape.herokuapp.com/api/hacker_news/stats/' +
-      timePeriod + '/users_most_comments?count=5')
+    return fetch(`${api}/hacker_news/stats/${timePeriod}/users_most_comments?count=5`)
 
         /* Display error message if server is down and error isn't already
         displayed (i.e., prevent multiple errors from appearing) */
