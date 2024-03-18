@@ -1,5 +1,5 @@
 var gulp = require('gulp');
-var sass = require('gulp-sass');
+var sass = require('gulp-sass')(require('sass'));
 var minifyCss = require('gulp-minify-css');
 var rename = require('gulp-rename');
 var browserify = require('browserify');
@@ -8,7 +8,6 @@ var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
 var inject = require('gulp-inject');
 var replace = require('gulp-replace');
-
 
 // Gulp tasks for compiling CSS, JS, assets, HTML
 gulp.task('css', compileSass);
