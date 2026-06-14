@@ -1,9 +1,6 @@
-// Set up jsdom HTML
-var htmlMarkup = require ('fs')
-  .readFileSync(__dirname + '/src/index.html').toString();
+import { readFileSync } from 'node:fs';
 
-document.documentElement.innerHTML = htmlMarkup;
+const html = readFileSync('src/index.html', 'utf8');
 
-
-// Initiate mock for fetch
-global.fetch = require('jest-fetch-mock');
+document.documentElement.innerHTML = html;
+window.open = vi.fn();

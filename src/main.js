@@ -1,38 +1,33 @@
-// Define global variables
-var siteMenuOpen = false; // Stores if site menu is open or closed
-var profileLink;
-var accountLink;
-var signInLink;
-var selectedButton = document.getElementById('hour');
-var pieError;
-var pieChart;
-var barError;
-var barChart;
-var wordError;
-var wordCloud;
-var bubbleError;
-var bubbleChart;
+import Highcharts from 'highcharts';
+import 'highcharts/highcharts-more';
+import 'highcharts/modules/wordcloud';
+import loadingImageUrl from './images/loading.svg';
+import './style.scss';
 
-var Highcharts = require('highcharts'); // Highcharts
-require('highcharts/highcharts-more')(Highcharts); // Highcharts extras
-require('highcharts/modules/wordcloud')(Highcharts); // Highcharts word cloud
-require("babel-polyfill"); // Babel polyfill
-require('whatwg-fetch'); // Fetch polyfill
+let siteMenuOpen = false;
+let profileLink;
+let accountLink;
+let signInLink;
+let selectedButton = document.getElementById('hour');
+let pieChart;
+let barChart;
+let wordCloud;
+let bubbleChart;
 
 // Determine API endpoint based on window location
-if (window.location.hostname == 'hn-stats.crystalprism.io') {
-  var api = 'https://hn-scrape.herokuapp.com/api';
-} else {
-  var api = 'http://localhost:5000/api';
-}
+const api = import.meta.env.VITE_API_URL ?? (
+  window.location.hostname === 'hn-stats.crystalprism.io'
+    ? 'https://hn-scrape.herokuapp.com/api'
+    : 'http://localhost:5000/api'
+);
+const currentPath = window.location.pathname.split('/').filter(Boolean).at(-1);
 
-// Define load functions
-window.onload = function() {
+function initialize() {
   // Remove sessionStorage data to load latest data
-  var i = sessionStorage.length;
+  let i = sessionStorage.length;
 
   while(i--) {
-    var key = sessionStorage.key(i);
+    const key = sessionStorage.key(i);
     if(/hn-/.test(key)) {
       sessionStorage.removeItem(key);
     }
@@ -56,23 +51,26 @@ window.onload = function() {
   // Get users with highest comment counts from the past hour
   getUserCommentCounts('hour');
 
-  return;
+  document.getElementById('copyright-year').textContent =
+    new Date().getFullYear();
 }
+
+window.addEventListener('DOMContentLoaded', initialize);
 
 
 // Create page header with site menu and account menu
 function createPageHeader() {
-  var header = document.createElement('div');
+  const header = document.createElement('div');
   header.id = 'header';
-  var headerContainer = document.createElement('div');
+  const headerContainer = document.createElement('div');
   headerContainer.id = 'header-container';
   header.appendChild(headerContainer);
 
   // Create project navigation menu
-  var iconContainer = document.createElement('div');
+  const iconContainer = document.createElement('div');
   iconContainer.id = 'site-menu-icon-container';
 
-  var menuIcon = document.createElement('img');
+  const menuIcon = document.createElement('img');
   menuIcon.id = 'site-menu-icon';
   menuIcon.title = 'Site menu';
   menuIcon.src = 'https://crystalprism.io/images/site-menu-icon-shadow.svg';
@@ -81,18 +79,18 @@ function createPageHeader() {
   iconContainer.appendChild(menuIcon);
 
   // Create site menu table
-  var siteMenu = document.createElement('table');
+  const siteMenu = document.createElement('table');
   siteMenu.id = 'site-menu';
   siteMenu.classList.add('closed');
 
-  var siteMenuSpacer = document.createElement('tr');
+  const siteMenuSpacer = document.createElement('tr');
   siteMenuSpacer.id = 'site-menu-spacer-row';
 
   headerContainer.appendChild(siteMenu);
   siteMenu.appendChild(siteMenuSpacer);
 
   // Create menu rows with icons and links to each project
-  var projectLinks = ['/', '/timespace/', '/shapes-in-rain/',
+  let projectLinks = ['/', '/timespace/', '/shapes-in-rain/',
     '/rhythm-of-life/', '/canvashare/', '/thought-writer/', '/vicarious/',
     'https://hn-stats.crystalprism.io/', 'https://pause.crystalprism.io/',
     'https://marian.crystalprism.io/', 'https://vroom.crystalprism.io/', '/'];
@@ -106,15 +104,15 @@ function createPageHeader() {
     return link;
   });
 
-  var projectTitles = ['Home', 'Timespace', 'Shapes In Rain',
+  const projectTitles = ['Home', 'Timespace', 'Shapes In Rain',
     'Rhythm of Life', 'CanvaShare', 'Thought Writer', 'Vicarious',
     'Hacker News Stats', 'Pause', 'Marian', 'Vroom', 'Account'];
 
-  for (var i = 0; i < projectLinks.length; i++) {
-    var menuRow = document.createElement('tr');
+  for (let i = 0; i < projectLinks.length; i++) {
+    const menuRow = document.createElement('tr');
     menuRow.classList.add('site-menu-row');
 
-    if (i == projectLinks.length - 1) {
+    if (i === projectLinks.length - 1) {
       menuRow.dataset.link = projectLinks[i] + 'user/sign-in/';
     } else {
       menuRow.dataset.link = projectLinks[i];
@@ -125,19 +123,19 @@ function createPageHeader() {
       return;
     }, false);
 
-    var menuImageCell = document.createElement('td');
+    const menuImageCell = document.createElement('td');
     menuImageCell.classList.add('site-menu-image-cell');
 
-    var menuImage = document.createElement('img');
+    const menuImage = document.createElement('img');
     menuImage.classList.add('site-menu-image');
     menuImage.src = projectLinks[i] + 'favicon.ico';
 
-    var menuTextCell = document.createElement('td');
+    const menuTextCell = document.createElement('td');
     menuTextCell.classList.add('site-menu-text-cell');
 
-    var menuText = document.createElement('div');
+    const menuText = document.createElement('div');
     menuText.classList.add('site-menu-text');
-    menuText.innerHTML = projectTitles[i];
+    menuText.textContent = projectTitles[i];
 
     menuRow.appendChild(menuImageCell);
     menuImageCell.appendChild(menuImage);
@@ -151,7 +149,7 @@ function createPageHeader() {
 
   /* Create account menu with links to profile, create account page, and sign
   in page */
-  var accountMenu = document.createElement('div');
+  const accountMenu = document.createElement('div');
   accountMenu.id = 'account-menu';
   profileLink = document.createElement('a');
   profileLink.id = 'profile-link';
@@ -175,7 +173,7 @@ function createPageHeader() {
 
 // Open/close site menu
 function toggleSiteMenu() {
-  var siteMenu = document.getElementById('site-menu');
+  const siteMenu = document.getElementById('site-menu');
 
   // Close menu if it is open
   if (siteMenuOpen) {
@@ -207,7 +205,7 @@ function toggleSiteMenu() {
 
 // Close site menu when user clicks outside of it
 window.addEventListener('click', function(e) {
-  if (siteMenuOpen && e.target != document.getElementById('site-menu-icon') &&
+  if (siteMenuOpen && e.target !== document.getElementById('site-menu-icon') &&
     !document.getElementById('site-menu').contains(e.target)) {
       toggleSiteMenu();
     }
@@ -221,8 +219,8 @@ window.addEventListener('click', function(e) {
 function checkIfLoggedIn() {
   // If user does not have a token stored locally, set account menu to default
   if (!localStorage.getItem('token')) {
-    accountLink.innerHTML = 'Create Account';
-    signInLink.innerHTML = 'Sign In';
+    accountLink.textContent = 'Create Account';
+    signInLink.textContent = 'Sign In';
 
     // Store current window for user to return to after logging in
     signInLink.onclick = function() {
@@ -242,8 +240,8 @@ function checkIfLoggedIn() {
 
     // Set account menu to default if server is down
     .catch(function(error) {
-      accountLink.innerHTML = 'Create Account';
-      signInLink.innerHTML = 'Sign In';
+      accountLink.textContent = 'Create Account';
+      signInLink.textContent = 'Sign In';
 
       // Store current window for user to return to after logging in
       signInLink.onclick = function() {
@@ -260,14 +258,14 @@ function checkIfLoggedIn() {
       if (response.ok) {
         response.json().then(function(payload) {
           // Set localStorage username to payload username
-          localStorage.setItem('username', payload['username']);
+          localStorage.setItem('username', payload.username);
 
-          profileLink.innerHTML = payload['username'];
+          profileLink.textContent = payload.username;
           profileLink.href = 'https://crystalprism.io/user/?username=' +
-            payload['username'];
-          accountLink.innerHTML = 'My Account';
+            payload.username;
+          accountLink.textContent = 'My Account';
           accountLink.href = 'https://crystalprism.io/user/my-account/';
-          signInLink.innerHTML = 'Sign Out';
+          signInLink.textContent = 'Sign Out';
 
           /* Send request to log user out when Sign In page link ("Sign Out"
           title) is clicked */
@@ -281,11 +279,11 @@ function checkIfLoggedIn() {
 
       /* If server responds with unauthorized status, set account menu to
       default and remove username and token from localStorage */
-      if (response.status == 401) {
+      if (response.status === 401) {
         localStorage.removeItem('username');
         localStorage.removeItem('token');
-        accountLink.innerHTML = 'Create Account';
-        signInLink.innerHTML = 'Sign In';
+        accountLink.textContent = 'Create Account';
+        signInLink.textContent = 'Sign In';
 
         // Store current window for user to return to after logging in
         signInLink.onclick = function() {
@@ -294,7 +292,7 @@ function checkIfLoggedIn() {
         }
 
         // Redirect to Sign In page if user is on My Account page
-        if (currentPath == 'my-account') {
+        if (currentPath === 'my-account') {
           sessionStorage.setItem('account-request', 'logout');
           window.location = '../sign-in/';
         }
@@ -306,7 +304,7 @@ function checkIfLoggedIn() {
 
 
 // Set button as selected when it is clicked and get requested stats
-for (var i = 0; i < document.getElementsByTagName('button').length; i++) {
+for (let i = 0; i < document.getElementsByTagName('button').length; i++) {
   document.getElementsByTagName('button')[i]
     .addEventListener('click', function() {
       selectedButton.classList.remove('selected');
@@ -323,127 +321,90 @@ for (var i = 0; i < document.getElementsByTagName('button').length; i++) {
 }
 
 
+async function loadStats({
+  cacheKey,
+  containerId,
+  display,
+  endpoint,
+  errorMessage,
+}, timePeriod) {
+  const container = document.getElementById(containerId);
+  const storageKey = `${cacheKey}-${timePeriod}`;
+  const loadingImage = document.createElement('img');
+  loadingImage.src = loadingImageUrl;
+  loadingImage.className = 'loading-image';
+  loadingImage.alt = 'Loading';
+  container.classList.add('is-loading');
+  container.appendChild(loadingImage);
+
+  const displayData = (data) => {
+    container.classList.remove('is-loading');
+    loadingImage.remove();
+    display(data);
+    return data;
+  };
+
+  const sessionData = sessionStorage.getItem(storageKey);
+  if (sessionData) {
+    return displayData(JSON.parse(sessionData));
+  }
+
+  try {
+    const response = await fetch(`${api}/hacker_news/stats/${timePeriod}/${endpoint}`);
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const serializedData = JSON.stringify(data);
+    sessionStorage.setItem(storageKey, serializedData);
+    localStorage.setItem(storageKey, serializedData);
+    return displayData(data);
+  } catch (error) {
+    const localData = localStorage.getItem(storageKey);
+    if (localData) {
+      return displayData(JSON.parse(localData));
+    }
+
+    container.classList.remove('is-loading');
+    const message = document.createElement('span');
+    message.id = 'error-message';
+    message.textContent = errorMessage;
+    container.replaceChildren(message);
+    return undefined;
+  }
+}
+
+
 // Get breakdown of post types for given time period (hour, day, week, all)
 function getPostTypes(timePeriod) {
-  var pieContainer = document.getElementById('post-types-pie');
-  pieContainer.innerHTML = '';
-
-  // Display loading image
-  var loadingImage = document.createElement('img');
-  loadingImage.id = 'loading-image';
-  loadingImage.src = 'images/loading.svg';
-  loadingImage.classList.add('loading');
-  loadingImage.style.animationPlayState = 'running';
-  pieContainer.appendChild(loadingImage);
-
-  /* Display cached post types data if stored in sessionStorage for this
-  session */
-  if (sessionStorage.getItem('hn-post-types-' + timePeriod)) {
-    displayPieChart(JSON.parse(sessionStorage
-      .getItem('hn-post-types-' + timePeriod)));
-  }
-
-  // Otherwise, load data from server
-  else {
-    return fetch(`${api}/hacker_news/stats/${timePeriod}/post_types`)
-
-        /* Display error message if server is down and error isn't already
-        displayed (i.e., prevent multiple errors from appearing) */
-        .catch(function(error) {
-          // Remove loading image
-          if (pieContainer.contains(loadingImage)) {
-            loadingImage.classList.remove('loading');
-            pieContainer.removeChild(loadingImage);
-          }
-
-          // Display cached post types data if it is stored in localStorage
-          if (localStorage.getItem('hn-post-types-' + timePeriod)) {
-            displayPieChart(JSON.parse(localStorage
-              .getItem('hn-post-types-' + timePeriod)));
-
-            return;
-          }
-
-          // Otherwise, display error
-          if (!pieError || pieError.parentNode != pieContainer) {
-            pieError = document.createElement('text');
-            pieError.id = 'error-message';
-            pieError.innerHTML = 'There was an error loading the post ' +
-              'types breakdown. Please refresh the page.';
-            pieContainer.appendChild(pieError);
-          }
-
-          return;
-        })
-
-        .then(async function(response) {
-          if (response) {
-            if (response.ok) {
-              var types = await response.json();
-
-              // Remove loading image
-              if (pieContainer.contains(loadingImage)) {
-                loadingImage.classList.remove('loading');
-                pieContainer.removeChild(loadingImage);
-              }
-
-              // Remove error message if it is displayed
-              if (pieError && pieError.parentNode == pieContainer) {
-                pieContainer.removeChild(pieError);
-              }
-
-              // Display pie chart of post types
-              displayPieChart(types);
-
-              // Store post types in sessionStorage for session loading
-              sessionStorage.setItem('hn-post-types-' + timePeriod, JSON
-                .stringify(types));
-
-              // Store post types in localStorage for offline loading
-              localStorage.setItem('hn-post-types-' + timePeriod, JSON
-                .stringify(types));
-
-              return types;
-            }
-          }
-
-          else {
-            // Remove loading image
-            if (pieContainer.contains(loadingImage)) {
-              loadingImage.classList.remove('loading');
-              pieContainer.removeChild(loadingImage);
-            }
-
-            // Display error message if the server sends an error
-            if (!pieError || pieError.parentNode != pieContainer) {
-              pieError = document.createElement('text');
-              pieError.id = 'error-message';
-              pieError.innerHTML = 'There was an error loading the post ' +
-                'types breakdown. Please refresh the page.';
-              pieContainer.appendChild(pieError);
-            }
-          }
-        });
-  }
+  return loadStats({
+    cacheKey: 'hn-post-types',
+    containerId: 'post-types-pie',
+    display: displayPieChart,
+    endpoint: 'post_types',
+    errorMessage: 'There was an error loading the post types breakdown. ' +
+      'Please refresh the page.',
+  }, timePeriod);
 }
 
 
 // Display pie chart of passed data
 function displayPieChart(data) {
-  var pieContainer = document.getElementById('post-types-pie');
+  const pieContainer = document.getElementById('post-types-pie');
 
-  var pieData = [];
+  const pieData = [];
 
-  for (var i = 0; i < data.length; i++) {
-    if (data[i].type == 'article') {
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].type === 'article') {
       pieData.push({name: 'Articles', y: data[i].type_count});
     }
 
-    else if (data[i].type == 'ask') {
+    else if (data[i].type === 'ask') {
       pieData.push({name: 'Ask HN', y: data[i].type_count});
     }
 
-    else if (data[i].type == 'show') {
+    else if (data[i].type === 'show') {
       pieData.push({name: 'Show HN', y: data[i].type_count});
     }
 
@@ -452,7 +413,7 @@ function displayPieChart(data) {
     }
   }
 
-  pieChart = new Highcharts.chart('post-types-pie', {
+  pieChart = Highcharts.chart('post-types-pie', {
     chart: {
       animation: 'true',
       backgroundColor: 'none',
@@ -519,119 +480,26 @@ function displayPieChart(data) {
 
 // Get top 5 posts with most comments and their comment counts
 function getCommentCounts(timePeriod) {
-  var barContainer = document.getElementById('comment-count-bar');
-  barContainer.innerHTML = '';
-
-  // Display loading image
-  var loadingImage = document.createElement('img');
-  loadingImage.id = 'loading-image';
-  loadingImage.src = 'images/loading.svg';
-  loadingImage.classList.add('loading');
-  loadingImage.style.animationPlayState = 'running';
-  barContainer.appendChild(loadingImage);
-
-  // Display cached post data if stored in sessionStorage for this session
-  if (sessionStorage.getItem('hn-post-comment-counts-' + timePeriod)) {
-    displayBarChart(JSON.parse(sessionStorage
-      .getItem('hn-post-comment-counts-' + timePeriod)));
-
-    return;
-  }
-
-  // Otherwise, load data from server
-  else {
-    return fetch(`${api}/hacker_news/stats/${timePeriod}/posts_highest_comment_count?count=5`)
-
-        /* Display error message if server is down and error isn't already
-        displayed (i.e., prevent multiple errors from appearing) */
-        .catch(function(error) {
-          // Remove loading image
-          if (barContainer.contains(loadingImage)) {
-            loadingImage.classList.remove('loading');
-            barContainer.removeChild(loadingImage);
-          }
-
-          // Display cached post data if it is stored in localStorage
-          if (localStorage.getItem('hn-post-comment-counts-' + timePeriod)) {
-            displayBarChart(JSON.parse(localStorage
-              .getItem('hn-post-comment-counts-' + timePeriod)));
-          }
-
-          // Otherwise, display error
-          else {
-            if (!barError || barError.parentNode != barContainer) {
-              barError = document.createElement('text');
-              barError.id = 'error-message';
-              barError.innerHTML = 'There was an error loading the posts' +
-                ' with the highest comment counts. Please refresh the page.';
-              barContainer.appendChild(barError);
-            }
-          }
-
-          return;
-        })
-
-        .then(async function(response) {
-          if (response) {
-            if (response.ok) {
-              var posts = await response.json();
-
-              // Remove loading image
-              if (barContainer.contains(loadingImage)) {
-                loadingImage.classList.remove('loading');
-                barContainer.removeChild(loadingImage);
-              }
-
-              // Remove error message if it is displayed
-              if (barError && barError.parentNode == barContainer) {
-                barContainer.removeChild(barError);
-              }
-
-              // Display bar chart of posts
-              displayBarChart(posts);
-
-              // Store posts in sessionStorage for session loading
-              sessionStorage.setItem('hn-post-comment-counts-' + timePeriod,
-                JSON.stringify(posts));
-
-              // Store posts in localStorage for offline loading
-              localStorage.setItem('hn-post-comment-counts-' + timePeriod,
-                JSON.stringify(posts));
-
-              return posts;
-            }
-          }
-
-          else {
-            // Remove loading image
-            if (barContainer.contains(loadingImage)) {
-              loadingImage.classList.remove('loading');
-              barContainer.removeChild(loadingImage);
-            }
-
-            // Display error message if the server sends an error
-            if (!barError || barError.parentNode != barContainer) {
-              barError = document.createElement('text');
-              barError.id = 'error-message';
-              barError.innerHTML = 'There was an error loading the posts ' +
-                'with the highest comment counts. Please refresh the page.';
-              barContainer.appendChild(barError);
-            }
-          }
-        });
-  }
+  return loadStats({
+    cacheKey: 'hn-post-comment-counts',
+    containerId: 'comment-count-bar',
+    display: displayBarChart,
+    endpoint: 'posts_highest_comment_count?count=5',
+    errorMessage: 'There was an error loading the posts with the highest ' +
+      'comment counts. Please refresh the page.',
+  }, timePeriod);
 }
 
 
 // Display bar chart of passed data
 function displayBarChart(data) {
-  var barContainer = document.getElementById('comment-count-bar');
+  const barContainer = document.getElementById('comment-count-bar');
 
-  var barData = [];
+  const barData = [];
 
-  var links = {};
+  const links = {};
 
-  for (var i = 0; i < data.length; i++) {
+  for (let i = 0; i < data.length; i++) {
     barData.push({name: data[i].title, y: data[i].comment_count,
       key: data[i].id});
     links[data[i].title] = data[i].link;
@@ -644,7 +512,7 @@ function displayBarChart(data) {
     }
   });
 
-  barChart = new Highcharts.chart('comment-count-bar', {
+  barChart = Highcharts.chart('comment-count-bar', {
     chart: {
       animation: 'true',
       backgroundColor: 'none',
@@ -747,118 +615,24 @@ function displayBarChart(data) {
 
 // Get 50 most used words in comments
 function getCommentWords(timePeriod) {
-  var wordContainer = document.getElementById('comment-word-cloud');
-
-  wordContainer.innerHTML = '';
-
-  // Display loading image
-  var loadingImage = document.createElement('img');
-  loadingImage.id = 'loading-image';
-  loadingImage.src = 'images/loading.svg';
-  loadingImage.classList.add('loading');
-  loadingImage.style.animationPlayState = 'running';
-  wordContainer.appendChild(loadingImage);
-
-  // Display cached comment words if stored in sessionStorage for this session
-  if (sessionStorage.getItem('hn-comment-words-' + timePeriod)) {
-    displayWordCloud(JSON.parse(sessionStorage
-      .getItem('hn-comment-words-' + timePeriod)));
-
-    return;
-  }
-
-  // Otherwise, load data from server
-  else {
-    return fetch(`${api}/hacker_news/stats/${timePeriod}/comment_words?count=50`)
-
-        /* Display error message if server is down and error isn't already
-        displayed (i.e., prevent multiple errors from appearing) */
-        .catch(function(error) {
-          // Remove loading image
-          if (wordContainer.contains(loadingImage)) {
-            loadingImage.classList.remove('loading');
-            wordContainer.removeChild(loadingImage);
-          }
-
-          // Display cached comment words list if it is stored in localStorage
-          if (localStorage.getItem('hn-comment-words-' + timePeriod)) {
-            displayWordCloud(JSON.parse(localStorage
-              .getItem('hn-comment-words-' + timePeriod)));
-          }
-
-          // Otherwise, display error
-          else {
-            if (!wordError || wordError.parentNode != wordContainer) {
-              wordError = document.createElement('text');
-              wordError.id = 'error-message';
-              wordError.innerHTML = 'There was an error loading the most ' +
-                'frequently used comment words. Please refresh the page.';
-              wordContainer.appendChild(wordError);
-            }
-          }
-
-          return;
-        })
-
-        .then(async function(response) {
-          if (response) {
-            if (response.ok) {
-              var words = await response.json();
-
-              // Remove loading image
-              if (wordContainer.contains(loadingImage)) {
-                loadingImage.classList.remove('loading');
-                wordContainer.removeChild(loadingImage);
-              }
-
-              // Remove error message if it is displayed
-              if (wordError && wordError.parentNode == wordContainer) {
-                wordContainer.removeChild(wordError);
-              }
-
-              // Display word cloud of words
-              displayWordCloud(words);
-
-              // Store words in sessionStorage for session loading
-              sessionStorage.setItem('hn-comment-words-' + timePeriod, JSON
-                .stringify(words));
-
-              // Store words in localStorage for offline loading
-              localStorage.setItem('hn-comment-words-' + timePeriod, JSON
-                .stringify(words));
-
-              return words;
-            }
-          }
-
-          else {
-            // Remove loading image
-            if (wordContainer.contains(loadingImage)) {
-              loadingImage.classList.remove('loading');
-              wordContainer.removeChild(loadingImage);
-            }
-
-            // Display error message if the server sends an error
-            if (!wordError || wordError.parentNode != wordContainer) {
-              wordError = document.createElement('text');
-              wordError.id = 'error-message';
-              wordError.innerHTML = 'There was an error loading the most ' +
-                'frequently used comment words. Please refresh the page.';
-              wordContainer.appendChild(wordError);
-            }
-          }
-        });
-  }
+  return loadStats({
+    cacheKey: 'hn-comment-words',
+    containerId: 'comment-word-cloud',
+    display: displayWordCloud,
+    endpoint: 'comment_words?count=50',
+    errorMessage: 'There was an error loading the most frequently used ' +
+      'comment words. Please refresh the page.',
+  }, timePeriod);
 }
 
 
 // Display word cloud of passed words
 function displayWordCloud(words) {
-  var wordContainer = document.getElementById('comment-word-cloud');
+  const wordContainer = document.getElementById('comment-word-cloud');
 
-  var data = [];
+  const data = [];
 
-  for (var i = 0; i < words.length; i++) {
+  for (let i = 0; i < words.length; i++) {
     data.push(
       {name: words[i].word, weight: words[i].nentry});
   }
@@ -870,7 +644,7 @@ function displayWordCloud(words) {
     }
   });
 
-  wordCloud = new Highcharts.chart('comment-word-cloud', {
+  wordCloud = Highcharts.chart('comment-word-cloud', {
     chart: {
       animation: 'true',
       backgroundColor: 'none',
@@ -926,121 +700,26 @@ function displayWordCloud(words) {
 
 // Get users with most comments
 function getUserCommentCounts(timePeriod) {
-  var bubbleContainer = document.getElementById('user-comment-bubble');
-  bubbleContainer.innerHTML = '';
-
-  // Display loading image
-  var loadingImage = document.createElement('img');
-  loadingImage.id = 'loading-image';
-  loadingImage.src = 'images/loading.svg';
-  loadingImage.classList.add('loading');
-  loadingImage.style.animationPlayState = 'running';
-  bubbleContainer.appendChild(loadingImage);
-
-  // Display cached user data if stored in sessionStorage for this session
-  if (sessionStorage.getItem('hn-user-comment-counts-' + timePeriod)) {
-    displayBubbleChart(JSON.parse(sessionStorage
-      .getItem('hn-user-comment-counts-' + timePeriod)));
-
-    return;
-  }
-
-  // Otherwise, load data from server
-  else {
-    return fetch(`${api}/hacker_news/stats/${timePeriod}/users_most_comments?count=5`)
-
-        /* Display error message if server is down and error isn't already
-        displayed (i.e., prevent multiple errors from appearing) */
-        .catch(function(error) {
-          // Remove loading image
-          if (bubbleContainer.contains(loadingImage)) {
-            loadingImage.classList.remove('loading');
-            bubbleContainer.removeChild(loadingImage);
-          }
-
-          // Display cached user data if it is stored in localStorage
-          if (localStorage.getItem('hn-user-comment-counts-' + timePeriod)) {
-            displayBubbleChart(JSON.parse(localStorage
-              .getItem('hn-user-comment-counts-' + timePeriod)));
-          }
-
-          // Otherwise, display error
-          else {
-            if (!bubbleError || bubbleError.parentNode != bubbleContainer) {
-              bubbleError = document.createElement('text');
-              bubbleError.id = 'error-message';
-              bubbleError.innerHTML = 'There was an error loading the users' +
-                ' with the most comments. Please refresh the page.';
-              bubbleContainer.appendChild(bubbleError);
-            }
-          }
-
-          return;
-        })
-
-        .then(async function(response) {
-          if (response) {
-            if (response.ok) {
-              var users = await response.json();
-
-              // Remove loading image
-              if (bubbleContainer.contains(loadingImage)) {
-                loadingImage.classList.remove('loading');
-                bubbleContainer.removeChild(loadingImage);
-              }
-
-              // Remove error message if it is displayed
-              if (bubbleError && bubbleError
-                .parentNode == bubbleContainer) {
-                  bubbleContainer.removeChild(bubbleError);
-                }
-
-              /* Display bubble chart of user data, with bubble size
-              representing user's overall word count */
-              displayBubbleChart(users);
-
-              // Store user data in sessionStorage for session loading
-              sessionStorage.setItem('hn-user-comment-counts-' + timePeriod,
-                JSON.stringify(users));
-
-              // Store user data in localStorage for offline loading
-              localStorage.setItem('hn-user-comment-counts-' + timePeriod,
-                JSON.stringify(users));
-
-              return users;
-            }
-          }
-
-          else {
-            // Remove loading image
-            if (bubbleContainer.contains(loadingImage)) {
-              loadingImage.classList.remove('loading');
-              bubbleContainer.removeChild(loadingImage);
-            }
-
-            // Display error message if the server sends an error
-            if (!bubbleError || bubbleError.parentNode != bubbleContainer) {
-              bubbleError = document.createElement('text');
-              bubbleError.id = 'error-message';
-              bubbleError.innerHTML = 'There was an error loading the users ' +
-                'with the most comments. Please refresh the page.';
-              bubbleContainer.appendChild(bubbleError);
-            }
-          }
-        });
-  }
+  return loadStats({
+    cacheKey: 'hn-user-comment-counts',
+    containerId: 'user-comment-bubble',
+    display: displayBubbleChart,
+    endpoint: 'users_most_comments?count=5',
+    errorMessage: 'There was an error loading the users with the most ' +
+      'comments. Please refresh the page.',
+  }, timePeriod);
 }
 
 
 // Display bubble chart of passed data
 function displayBubbleChart(data) {
-  var bubbleContainer = document.getElementById('user-comment-bubble');
+  const bubbleContainer = document.getElementById('user-comment-bubble');
 
-  var bubbleData = [];
+  const bubbleData = [];
 
-  var names = [];
+  const names = [];
 
-  for (var i = 0; i < data.length; i++) {
+  for (let i = 0; i < data.length; i++) {
     bubbleData.push({x: i, y: data[i].comment_count,
       z: data[i].word_count});
     names.push(data[i].username);
@@ -1053,7 +732,7 @@ function displayBubbleChart(data) {
     }
   });
 
-  bubbleChart = new Highcharts.chart('user-comment-bubble', {
+  bubbleChart = Highcharts.chart('user-comment-bubble', {
     chart: {
       animation: 'true',
       events: {
@@ -1165,8 +844,8 @@ function displayBubbleChart(data) {
 
 // Resize specified chart to container size on window resize
 function resize(chart, container) {
-  var height = container.offsetHeight;
-  var width = container.offsetWidth;
+  const height = container.offsetHeight;
+  const width = container.offsetWidth;
   chart.setSize(width, height);
 }
 

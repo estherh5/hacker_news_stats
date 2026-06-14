@@ -1,163 +1,115 @@
-import { getPostTypes, getCommentCounts, getCommentWords,
-  getUserCommentCounts } from '../src/main';
+vi.mock('highcharts', () => ({
+  default: {
+    chart: vi.fn(() => ({ setSize: vi.fn() })),
+    setOptions: vi.fn(),
+  },
+}));
+vi.mock('highcharts/highcharts-more', () => ({}));
+vi.mock('highcharts/modules/wordcloud', () => ({}));
 
+import {
+  getCommentCounts,
+  getCommentWords,
+  getPostTypes,
+  getUserCommentCounts,
+} from '../src/main.js';
 
-// Clear fetch cache before each test
+const timePeriods = ['hour', 'day', 'week', 'all'];
+
 beforeEach(() => {
-  fetch.resetMocks();
+  localStorage.clear();
+  sessionStorage.clear();
+  document.querySelectorAll('.chart-container').forEach((container) => {
+    container.replaceChildren();
+    container.classList.remove('is-loading');
+  });
+  vi.stubGlobal('fetch', vi.fn());
 });
 
-
-/* Test getPostTypes function for each time period ('hour, 'day', 'week',
-'all') */
-test('fetch post types for each time period', async () => {
-  var postTypes = [
-    {
-      "type": "article",
-      "type_count": 83
-    },
-    {
-      "type": "show",
-      "type_count": 5
-    },
-    {
-      "type": "ask",
-      "type_count": 2
-    }
-  ];
-
-  var timePeriods = ['hour', 'day', 'week', 'all'];
-
-  fetch.mockResponse(JSON.stringify(postTypes));
-
-  // Fetch post types for each time period
-  for (var i = 0; i < timePeriods.length; i++) {
-    var response = await getPostTypes(timePeriods[i]);
-
-    // Ensure URL for each fetch request is correct
-    expect(fetch.mock.calls[i][0]).toEqual(
-      'https://hn-scrape.herokuapp.com/api/hacker_news/stats/' +
-      timePeriods[i] + '/post_types');
-
-    // Ensure each fetch request doesn't throw an error
-    expect(fetch.mock.results[i].isThrow).toEqual(false);
-  }
-
-  // Ensure 4 fetch requests were sent, one for each time period
-  expect(fetch.mock.calls.length).toEqual(4);
-
-  return;
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
+describe.each([
+  {
+    name: 'post types',
+    load: getPostTypes,
+    endpoint: 'post_types',
+    data: [{ type: 'article', type_count: 83 }],
+  },
+  {
+    name: 'posts with highest comment counts',
+    load: getCommentCounts,
+    endpoint: 'posts_highest_comment_count?count=5',
+    data: [{
+      comment_count: 1,
+      id: 1,
+      link: 'https://test.com',
+      title: 'Test',
+    }],
+  },
+  {
+    name: 'most used comment words',
+    load: getCommentWords,
+    endpoint: 'comment_words?count=50',
+    data: [{ nentry: 100, word: 'test' }],
+  },
+  {
+    name: 'users with most comments',
+    load: getUserCommentCounts,
+    endpoint: 'users_most_comments?count=5',
+    data: [{ comment_count: 100, username: 'test', word_count: 1000 }],
+  },
+])('$name', ({ load, endpoint, data }) => {
+  test.each(timePeriods)('fetches the %s data', async (timePeriod) => {
+    fetch.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue(data),
+    });
 
-/* Test getCommentCounts function for each time period ('hour, 'day', 'week',
-'all') */
-test('fetch posts with highest comment counts for each time period',
-  async () => {
-    var posts = [
-      {
-        "comment_count": 1,
-        "created": "Mon, 01 Jun 2018 12:00:00 GMT",
-        "feed_rank": 1,
-        "id": 1,
-        "link": "https://test.com",
-        "point_count": 1,
-        "title": "Test",
-        "type": "article",
-        "username": "test",
-        "website": "test.com"
-      }
-    ];
+    await expect(load(timePeriod)).resolves.toEqual(data);
+    expect(fetch).toHaveBeenCalledWith(
+      `http://localhost:5000/api/hacker_news/stats/${timePeriod}/${endpoint}`,
+    );
+  });
 
-    var timePeriods = ['hour', 'day', 'week', 'all'];
+  test('uses local cache when the API is unavailable', async () => {
+    localStorage.setItem(`hn-${({
+      post_types: 'post-types',
+      'posts_highest_comment_count?count=5': 'post-comment-counts',
+      'comment_words?count=50': 'comment-words',
+      'users_most_comments?count=5': 'user-comment-counts',
+    })[endpoint]}-hour`, JSON.stringify(data));
+    fetch.mockRejectedValue(new Error('offline'));
 
-    fetch.mockResponse(JSON.stringify(posts));
+    await expect(load('hour')).resolves.toEqual(data);
+  });
 
-    // Fetch posts for each time period
-    for (var i = 0; i < timePeriods.length; i++) {
-      var response = await getCommentCounts(timePeriods[i]);
+  test('keeps the existing chart visible while new data loads', async () => {
+    const container = document.getElementById(({
+      post_types: 'post-types-pie',
+      'posts_highest_comment_count?count=5': 'comment-count-bar',
+      'comment_words?count=50': 'comment-word-cloud',
+      'users_most_comments?count=5': 'user-comment-bubble',
+    })[endpoint]);
+    const existingChart = document.createElement('div');
+    existingChart.className = 'existing-chart';
+    container.appendChild(existingChart);
 
-      // Ensure URL for each fetch request is correct
-      expect(fetch.mock.calls[i][0]).toEqual(
-        'https://hn-scrape.herokuapp.com/api/hacker_news/stats/' +
-        timePeriods[i] + '/posts_highest_comment_count?count=5');
+    let resolveResponse;
+    fetch.mockReturnValue(new Promise((resolve) => {
+      resolveResponse = resolve;
+    }));
 
-      // Ensure each fetch request doesn't throw an error
-      expect(fetch.mock.results[i].isThrow).toEqual(false);
-    }
+    const request = load('hour');
 
-    // Ensure 4 fetch requests were sent, one for each time period
-    expect(fetch.mock.calls.length).toEqual(4);
+    expect(container.contains(existingChart)).toBe(true);
+    expect(container.querySelector('.loading-image')).not.toBeNull();
 
-    return;
-});
-
-
-/* Test getCommentWords function for each time period ('hour, 'day', 'week',
-'all') */
-test('fetch most used words in comments for each time period', async () => {
-  var words = [
-    {
-      "ndoc": 100,
-      "nentry": 100,
-      "word": "test"
-    }
-  ];
-
-  var timePeriods = ['hour', 'day', 'week', 'all'];
-
-  fetch.mockResponse(JSON.stringify(words));
-
-  // Fetch words for each time period
-  for (var i = 0; i < timePeriods.length; i++) {
-    var response = await getCommentWords(timePeriods[i]);
-
-    // Ensure URL for each fetch request is correct
-    expect(fetch.mock.calls[i][0]).toEqual(
-      'https://hn-scrape.herokuapp.com/api/hacker_news/stats/' +
-      timePeriods[i] + '/comment_words?count=50');
-
-    // Ensure each fetch request doesn't throw an error
-    expect(fetch.mock.results[i].isThrow).toEqual(false);
-  }
-
-  // Ensure 4 fetch requests were sent, one for each time period
-  expect(fetch.mock.calls.length).toEqual(4);
-
-  return;
-});
-
-
-/* Test getUserCommentCounts function for each time period ('hour, 'day',
-'week', 'all') */
-test('fetch users with most comments for each time period', async () => {
-  var users = [
-    {
-      "comment_count": 100,
-      "username": "test",
-      "word_count": 1000
-    }
-  ];
-
-  var timePeriods = ['hour', 'day', 'week', 'all'];
-
-  fetch.mockResponse(JSON.stringify(users));
-
-  // Fetch users for each time period
-  for (var i = 0; i < timePeriods.length; i++) {
-    var response = await getUserCommentCounts(timePeriods[i]);
-
-    // Ensure URL for each fetch request is correct
-    expect(fetch.mock.calls[i][0]).toEqual(
-      'https://hn-scrape.herokuapp.com/api/hacker_news/stats/' +
-      timePeriods[i] + '/users_most_comments?count=5');
-
-    // Ensure each fetch request doesn't throw an error
-    expect(fetch.mock.results[i].isThrow).toEqual(false);
-  }
-
-  // Ensure 4 fetch requests were sent, one for each time period
-  expect(fetch.mock.calls.length).toEqual(4);
-
-  return;
+    resolveResponse({
+      ok: true,
+      json: vi.fn().mockResolvedValue(data),
+    });
+    await request;
+  });
 });

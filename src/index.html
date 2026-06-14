@@ -20,9 +20,6 @@
       gtag('config', 'UA-91236421-1');
     </script>
 
-    <!-- inject:css -->
-    <!-- endinject -->
-
     <title>Hacker News Statsboard</title>
   </head>
   <body>
@@ -134,10 +131,11 @@
       </tbody>
     </table>
 
-    <div id="footer"><!-- replace:copyright --></div>
+    <div id="footer">
+      &copy; Copyright 2017-<span id="copyright-year"></span>
+      <a href="https://crystalprism.io">Crystal Prism</a>
+    </div>
 
-    <!-- inject:js -->
-    <!-- endinject -->
-
+    <script type="module" src="/main.js"></script>
   </body>
 </html>

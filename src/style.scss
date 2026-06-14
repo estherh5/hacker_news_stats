@@ -346,6 +346,7 @@ button.selected {
 }
 
 .chart-container {
+  position: relative;
   width: 100%;
   max-width: 300px;
   height: 400px;
@@ -356,20 +357,23 @@ button.selected {
   @include justify-center;
 }
 
-#loading-image {
+.loading-image {
+  position: absolute;
+  top: calc(50% - 25px);
+  left: calc(50% - 25px);
   height: 50px;
   width: 50px;
-  display: none;
-}
-
-.loading {
   border: none;
-  display: block !important;
   background-color: rgba(0, 0, 0, 0);
   animation-name: rotate;
   animation-duration: 5s;
   animation-iteration-count: infinite;
   animation-timing-function: linear;
+  z-index: 2;
+}
+
+.chart-container.is-loading > :not(.loading-image) {
+  opacity: 0.35;
 }
 
 @keyframes rotate {
