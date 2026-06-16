@@ -6,6 +6,7 @@ const projectRoot = import.meta.dirname;
 
 function copyStaticFiles() {
   const files = [
+    ['src/favicon.ico', 'dist/favicon.ico'],
     ['src/assets/humans.txt', 'dist/humans.txt'],
     ['src/assets/robots.txt', 'dist/robots.txt'],
     ['src/assets/sitemap.xml', 'dist/sitemap.xml'],
