@@ -17,9 +17,14 @@ let bubbleChart;
 // Determine API endpoint based on window location
 const api = import.meta.env.VITE_API_URL ?? (
   window.location.hostname === 'hn-stats.crystalprism.io'
-    ? 'https://hn-scrape.herokuapp.com/api'
+    ? 'https://hn-api.crystalprism.io/api'
     : 'http://localhost:5000/api'
 );
+
+/* Accounts live on the Crystal Prism API, a different service from the one
+above -- this page reads stats from hn-api and identity from api. */
+const accountApi = import.meta.env.VITE_ACCOUNT_API_URL ??
+  'https://api.crystalprism.io/api';
 const currentPath = window.location.pathname.split('/').filter(Boolean).at(-1);
 
 function initialize() {
@@ -215,88 +220,110 @@ window.addEventListener('click', function(e) {
 }, false);
 
 
+// Show the signed-out account menu, remembering where to return after signin
+function setSignedOutMenu() {
+  /* Clear any identity left over from a previous signed-in render -- this runs
+  on the 401 path too, where the menu is already showing a username. */
+  profileLink.textContent = '';
+  profileLink.removeAttribute('href');
+  accountLink.textContent = 'Create Account';
+  accountLink.href = 'https://crystalprism.io/user/create-account/';
+  signInLink.textContent = 'Sign In';
+  signInLink.href = 'https://crystalprism.io/user/sign-in/';
+
+  // Store current window for user to return to after logging in
+  signInLink.onclick = function() {
+    sessionStorage.setItem('previous-window', window.location.href);
+    return;
+  }
+}
+
+
+// Show the signed-in account menu for a known username
+function setSignedInMenu(username) {
+  profileLink.textContent = username;
+  profileLink.href = 'https://crystalprism.io/user/?username=' + username;
+  accountLink.textContent = 'My Account';
+  accountLink.href = 'https://crystalprism.io/user/my-account/';
+  signInLink.textContent = 'Sign Out';
+
+  /* Send request to log user out when Sign In page link ("Sign Out" title) is
+  clicked */
+  signInLink.onclick = function() {
+    sessionStorage.setItem('account-request', 'logout');
+    return;
+  }
+}
+
+
 // Check if user is logged into Crystal Prism by assessing JWT token's validity
 function checkIfLoggedIn() {
   // If user does not have a token stored locally, set account menu to default
   if (!localStorage.getItem('token')) {
-    accountLink.textContent = 'Create Account';
-    signInLink.textContent = 'Sign In';
-
-    // Store current window for user to return to after logging in
-    signInLink.onclick = function() {
-      sessionStorage.setItem('previous-window', window.location.href);
-      return;
-    }
+    setSignedOutMenu();
 
     return false;
   }
 
   /* Otherwise, check if the user is logged in by sending their token to the
   server */
-  return fetch('https://api.crystalprism.io/api/user/verify', {
+  return fetch(accountApi + '/user/verify', {
     headers: {'Authorization': 'Bearer ' + localStorage.getItem('token')},
     method: 'GET',
   })
-
-    // Set account menu to default if server is down
-    .catch(function(error) {
-      accountLink.textContent = 'Create Account';
-      signInLink.textContent = 'Sign In';
-
-      // Store current window for user to return to after logging in
-      signInLink.onclick = function() {
-        sessionStorage.setItem('previous-window', window.location.href);
-        return;
-      }
-
-      return false;
-    })
 
     .then(function(response) {
       /* If server verifies token is correct, display link to profile, My
       Account page, and Sign In page (with "Sign Out" title) */
       if (response.ok) {
-        response.json().then(function(payload) {
+        return response.json().then(function(payload) {
           // Set localStorage username to payload username
           localStorage.setItem('username', payload.username);
 
-          profileLink.textContent = payload.username;
-          profileLink.href = 'https://crystalprism.io/user/?username=' +
-            payload.username;
-          accountLink.textContent = 'My Account';
-          accountLink.href = 'https://crystalprism.io/user/my-account/';
-          signInLink.textContent = 'Sign Out';
+          setSignedInMenu(payload.username);
 
-          /* Send request to log user out when Sign In page link ("Sign Out"
-          title) is clicked */
-          signInLink.onclick = function() {
-            sessionStorage.setItem('account-request', 'logout');
-            return;
-          }
+          return true;
         });
-        return true;
       }
 
-      /* If server responds with unauthorized status, set account menu to
-      default and remove username and token from localStorage */
+      /* If server responds with unauthorized status, the token is genuinely
+      dead -- discard it and set the account menu to default */
       if (response.status === 401) {
         localStorage.removeItem('username');
         localStorage.removeItem('token');
-        accountLink.textContent = 'Create Account';
-        signInLink.textContent = 'Sign In';
-
-        // Store current window for user to return to after logging in
-        signInLink.onclick = function() {
-          sessionStorage.setItem('previous-window', window.location.href);
-          return;
-        }
+        setSignedOutMenu();
 
         // Redirect to Sign In page if user is on My Account page
         if (currentPath === 'my-account') {
           sessionStorage.setItem('account-request', 'logout');
           window.location = '../sign-in/';
         }
+
+        return false;
       }
+
+      /* Any other status means the server answered but could not tell us
+      anything about this token. Treat it like an unreachable server. */
+      throw new Error('Unexpected verify status: ' + response.status);
+    })
+
+    /* The account server is unreachable or errored. This does NOT mean the
+    user is signed out, so do not discard their token and do not invite them
+    to create a second account -- fall back to the username cached by the last
+    successful verify, and only show the signed-out menu if we have no idea
+    who they are. */
+    .catch(function(error) {
+      console.warn('Could not verify Crystal Prism session:', error);
+
+      const cachedUsername = localStorage.getItem('username');
+
+      if (cachedUsername) {
+        setSignedInMenu(cachedUsername);
+
+        return true;
+      }
+
+      setSignedOutMenu();
 
       return false;
     });
