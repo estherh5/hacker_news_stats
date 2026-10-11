@@ -95,8 +95,12 @@ function createPageHeader() {
   siteMenu.appendChild(siteMenuSpacer);
 
   // Create menu rows with icons and links to each project
-  let projectLinks = ['/', '/timespace/', '/shapes-in-rain/',
-    '/rhythm-of-life/', '/canvashare/', '/thought-writer/', '/vicarious/',
+  let projectLinks = ['/', 'https://timespace.crystalprism.io/',
+    'https://shapes-in-rain.crystalprism.io/',
+    'https://rhythm-of-life.crystalprism.io/',
+    'https://canvashare.crystalprism.io/',
+    'https://thought-writer.crystalprism.io/',
+    'https://vicarious.crystalprism.io/',
     'https://hn-stats.crystalprism.io/', 'https://pause.crystalprism.io/',
     'https://marian.crystalprism.io/', 'https://vroom.crystalprism.io/', '/'];
 
@@ -118,7 +122,7 @@ function createPageHeader() {
     menuRow.classList.add('site-menu-row');
 
     if (i === projectLinks.length - 1) {
-      menuRow.dataset.link = projectLinks[i] + 'user/sign-in/';
+      menuRow.dataset.link = 'https://account.crystalprism.io/sign-in/';
     } else {
       menuRow.dataset.link = projectLinks[i];
     }
@@ -160,10 +164,10 @@ function createPageHeader() {
   profileLink.id = 'profile-link';
   accountLink = document.createElement('a');
   accountLink.id = 'account-link';
-  accountLink.href = 'https://crystalprism.io/user/create-account/';
+  accountLink.href = 'https://account.crystalprism.io/create-account/';
   signInLink = document.createElement('a');
   signInLink.id = 'sign-in-link';
-  signInLink.href = 'https://crystalprism.io/user/sign-in/';
+  signInLink.href = 'https://account.crystalprism.io/sign-in/';
   headerContainer.appendChild(accountMenu);
   accountMenu.appendChild(profileLink);
   accountMenu.appendChild(accountLink);
@@ -227,9 +231,9 @@ function setSignedOutMenu() {
   profileLink.textContent = '';
   profileLink.removeAttribute('href');
   accountLink.textContent = 'Create Account';
-  accountLink.href = 'https://crystalprism.io/user/create-account/';
+  accountLink.href = 'https://account.crystalprism.io/create-account/';
   signInLink.textContent = 'Sign In';
-  signInLink.href = 'https://crystalprism.io/user/sign-in/';
+  signInLink.href = 'https://account.crystalprism.io/sign-in/';
 
   // Store current window for user to return to after logging in
   signInLink.onclick = function() {
@@ -242,9 +246,9 @@ function setSignedOutMenu() {
 // Show the signed-in account menu for a known username
 function setSignedInMenu(username) {
   profileLink.textContent = username;
-  profileLink.href = 'https://crystalprism.io/user/?username=' + username;
+  profileLink.href = 'https://account.crystalprism.io/?username=' + username;
   accountLink.textContent = 'My Account';
-  accountLink.href = 'https://crystalprism.io/user/my-account/';
+  accountLink.href = 'https://account.crystalprism.io/my-account/';
   signInLink.textContent = 'Sign Out';
 
   /* Send request to log user out when Sign In page link ("Sign Out" title) is
