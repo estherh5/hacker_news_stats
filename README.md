@@ -7,3 +7,6 @@ Hacker News Stats is a display of statistics from data scraped from Y Combinator
 1. Clone this repository locally or on your server.
 2. Go to the project root directory, and install the required dependencies by running `npm install`.
 3. Compile the required stylesheets and scripts by running `npm run build`.
+
+## Deployment
+Netlify site `hn-stats` serves https://hn-stats.crystalprism.io (DNS: CNAME to `hn-stats.netlify.com`). It builds continuously from `main` of `estherh5/hacker_news_stats` with `npm run build` and publishes `dist/`, so pushing to `main` deploys. GitHub Pages is not enabled.

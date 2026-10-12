@@ -2,12 +2,14 @@ import Highcharts from 'highcharts';
 import 'highcharts/highcharts-more';
 import 'highcharts/modules/wordcloud';
 import loadingImageUrl from './images/loading.svg';
+import './fleet/fleet-menu.js';
+import fleetFallback from './fleet/fleet-fallback.json';
+import './fleet/fleet.css';
 import './style.scss';
 
-let siteMenuOpen = false;
-let profileLink;
-let accountLink;
-let signInLink;
+const FLEET_KEY = 'hn-stats';
+const signInUrl = 'https://account.crystalprism.io/sign-in/';
+let fleetMenu;
 let selectedButton = document.getElementById('hour');
 let pieChart;
 let barChart;
@@ -38,7 +40,7 @@ function initialize() {
     }
   }
 
-  // Create page header with site menu and account menu
+  // Create page header with the fleet apps + account menu
   createPageHeader();
 
   // Check if user is logged into Crystal Prism
@@ -56,207 +58,69 @@ function initialize() {
   // Get users with highest comment counts from the past hour
   getUserCommentCounts('hour');
 
-  document.getElementById('copyright-year').textContent =
-    new Date().getFullYear();
+  createPageFooter();
 }
 
 window.addEventListener('DOMContentLoaded', initialize);
 
 
-// Create page header with site menu and account menu
+// Fleet apps menu at the header's trailing end. It replaces the hand-ported
+// site menu and the account links; its rows follow the Crystal Prism session.
 function createPageHeader() {
-  const header = document.createElement('div');
+  const header = document.createElement('header');
   header.id = 'header';
-  const headerContainer = document.createElement('div');
-  headerContainer.id = 'header-container';
-  header.appendChild(headerContainer);
 
-  // Create project navigation menu
-  const iconContainer = document.createElement('div');
-  iconContainer.id = 'site-menu-icon-container';
-
-  const menuIcon = document.createElement('img');
-  menuIcon.id = 'site-menu-icon';
-  menuIcon.title = 'Site menu';
-  menuIcon.src = 'https://crystalprism.io/images/site-menu-icon-shadow.svg';
-
-  headerContainer.appendChild(iconContainer);
-  iconContainer.appendChild(menuIcon);
-
-  // Create site menu table
-  const siteMenu = document.createElement('table');
-  siteMenu.id = 'site-menu';
-  siteMenu.classList.add('closed');
-
-  const siteMenuSpacer = document.createElement('tr');
-  siteMenuSpacer.id = 'site-menu-spacer-row';
-
-  headerContainer.appendChild(siteMenu);
-  siteMenu.appendChild(siteMenuSpacer);
-
-  // Create menu rows with icons and links to each project
-  let projectLinks = ['/', 'https://timespace.crystalprism.io/',
-    'https://shapes-in-rain.crystalprism.io/',
-    'https://rhythm-of-life.crystalprism.io/',
-    'https://canvashare.crystalprism.io/',
-    'https://thought-writer.crystalprism.io/',
-    'https://vicarious.crystalprism.io/',
-    'https://hn-stats.crystalprism.io/', 'https://pause.crystalprism.io/',
-    'https://marian.crystalprism.io/', 'https://vroom.crystalprism.io/', '/'];
-
-  // Add domain root to each link unless it is already provided
-  projectLinks = projectLinks.map(function(link) {
-    if (!link.includes('https')) {
-      return 'https://crystalprism.io/' + link;
-    }
-
-    return link;
+  fleetMenu = window.FleetKit.mountMenu(header, {
+    apps: window.FleetKit.shapeFleet(null, FLEET_KEY, fleetFallback),
+    user: null,
+    rows: [],
+    placement: 'down-end',
   });
 
-  const projectTitles = ['Home', 'Timespace', 'Shapes In Rain',
-    'Rhythm of Life', 'CanvaShare', 'Thought Writer', 'Vicarious',
-    'Hacker News Stats', 'Pause', 'Marian', 'Vroom', 'Account'];
-
-  for (let i = 0; i < projectLinks.length; i++) {
-    const menuRow = document.createElement('tr');
-    menuRow.classList.add('site-menu-row');
-
-    if (i === projectLinks.length - 1) {
-      menuRow.dataset.link = 'https://account.crystalprism.io/sign-in/';
-    } else {
-      menuRow.dataset.link = projectLinks[i];
-    }
-
-    menuRow.addEventListener('click', function() {
-      window.location = this.dataset.link;
-      return;
-    }, false);
-
-    const menuImageCell = document.createElement('td');
-    menuImageCell.classList.add('site-menu-image-cell');
-
-    const menuImage = document.createElement('img');
-    menuImage.classList.add('site-menu-image');
-    menuImage.src = projectLinks[i] + 'favicon.ico';
-
-    const menuTextCell = document.createElement('td');
-    menuTextCell.classList.add('site-menu-text-cell');
-
-    const menuText = document.createElement('div');
-    menuText.classList.add('site-menu-text');
-    menuText.textContent = projectTitles[i];
-
-    menuRow.appendChild(menuImageCell);
-    menuImageCell.appendChild(menuImage);
-    menuRow.appendChild(menuTextCell);
-    menuTextCell.appendChild(menuText);
-    siteMenu.appendChild(menuRow);
-  }
-
-  // Toggle site menu when user clicks menu icon
-  menuIcon.onmousedown = toggleSiteMenu;
-
-  /* Create account menu with links to profile, create account page, and sign
-  in page */
-  const accountMenu = document.createElement('div');
-  accountMenu.id = 'account-menu';
-  profileLink = document.createElement('a');
-  profileLink.id = 'profile-link';
-  accountLink = document.createElement('a');
-  accountLink.id = 'account-link';
-  accountLink.href = 'https://account.crystalprism.io/create-account/';
-  signInLink = document.createElement('a');
-  signInLink.id = 'sign-in-link';
-  signInLink.href = 'https://account.crystalprism.io/sign-in/';
-  headerContainer.appendChild(accountMenu);
-  accountMenu.appendChild(profileLink);
-  accountMenu.appendChild(accountLink);
-  accountMenu.appendChild(signInLink);
+  // Swap in the live list from crystalprism.io/apps.json when it arrives
+  const menu = fleetMenu;
+  window.FleetKit.getFleetApps(FLEET_KEY, { fallback: fleetFallback })
+    .then(function(apps) {
+      if (fleetMenu === menu) {
+        menu.setApps(apps);
+      }
+    });
 
   // Insert header before first element in body
   document.body.insertAdjacentElement('afterbegin', header);
 
-  return;
+  return header;
 }
 
 
-// Open/close site menu
-function toggleSiteMenu() {
-  const siteMenu = document.getElementById('site-menu');
-
-  // Close menu if it is open
-  if (siteMenuOpen) {
-    siteMenu.classList.remove('opened');
-    siteMenu.classList.add('closed');
-
-    // Set menu icon back to shadow version
-    document.getElementById('site-menu-icon')
-      .src = 'https://crystalprism.io/images/site-menu-icon-shadow.svg';
-
-    siteMenuOpen = false;
-
-    return;
-  }
-
-  // Otherwise, open menu
-  siteMenu.classList.remove('closed');
-  siteMenu.classList.add('opened');
-
-  // Set menu icon to non-shadow version
-  document.getElementById('site-menu-icon')
-    .src = 'https://crystalprism.io/images/site-menu-icon.svg';
-
-  siteMenuOpen = true;
-
-  return;
+// Crystal Prism footer from the fleet kit, in flow below the dashboard
+function createPageFooter() {
+  return window.FleetKit.renderFooter(document.getElementById('footer'));
 }
 
 
-// Close site menu when user clicks outside of it
-window.addEventListener('click', function(e) {
-  if (siteMenuOpen && e.target !== document.getElementById('site-menu-icon') &&
-    !document.getElementById('site-menu').contains(e.target)) {
-      toggleSiteMenu();
-    }
-
-  return;
-
-}, false);
-
-
-// Show the signed-out account menu, remembering where to return after signin
+// Show the signed-out menu: one Sign in row
 function setSignedOutMenu() {
-  /* Clear any identity left over from a previous signed-in render -- this runs
-  on the 401 path too, where the menu is already showing a username. */
-  profileLink.textContent = '';
-  profileLink.removeAttribute('href');
-  accountLink.textContent = 'Create Account';
-  accountLink.href = 'https://account.crystalprism.io/create-account/';
-  signInLink.textContent = 'Sign In';
-  signInLink.href = 'https://account.crystalprism.io/sign-in/';
-
-  // Store current window for user to return to after logging in
-  signInLink.onclick = function() {
-    sessionStorage.setItem('previous-window', window.location.href);
-    return;
-  }
+  fleetMenu.setUser(null, [{ label: 'Sign in', href: signInUrl }]);
 }
 
 
-// Show the signed-in account menu for a known username
+// Show the signed-in menu for a known username: Settings and Sign out
 function setSignedInMenu(username) {
-  profileLink.textContent = username;
-  profileLink.href = 'https://account.crystalprism.io/?username=' + username;
-  accountLink.textContent = 'My Account';
-  accountLink.href = 'https://account.crystalprism.io/my-account/';
-  signInLink.textContent = 'Sign Out';
+  fleetMenu.setUser({ label: username }, [
+    { label: 'Settings', href: 'https://account.crystalprism.io/my-account/' },
+    { label: 'Sign out', onSelect: signOut },
+  ]);
+}
 
-  /* Send request to log user out when Sign In page link ("Sign Out" title) is
-  clicked */
-  signInLink.onclick = function() {
-    sessionStorage.setItem('account-request', 'logout');
-    return;
-  }
+
+/* Sign out: forget this origin's session, ask the account site to log out,
+and land on its Sign In page as the old "Sign Out" link did */
+function signOut() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('username');
+  sessionStorage.setItem('account-request', 'logout');
+  window.location.assign(signInUrl);
 }
 
 
@@ -882,4 +746,4 @@ function resize(chart, container) {
 
 
 export { getPostTypes, getCommentCounts, getCommentWords,
-  getUserCommentCounts };
+  getUserCommentCounts, createPageHeader, createPageFooter, checkIfLoggedIn };

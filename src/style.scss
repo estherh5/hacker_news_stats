@@ -82,115 +82,6 @@ body, td {
   font-size: 10pt;
 }
 
-#header {
-  position: fixed;
-  height: 43px;
-  top: 0px;
-  left: 0px;
-  right: 0px;
-  @include flex;
-  @include flex-column;
-  font-family: $cp-font;
-  z-index: 3;
-}
-
-#header-container {
-  width: 100%;
-  @include flex;
-  @include justify-between;
-}
-
-#site-menu-icon-container {
-  width: 50px;
-  margin-top: 7px;
-  @include flex;
-  @include flex-column;
-  @include align-center;
-  @include justify-center;
-  @include self-center;
-  cursor: pointer;
-}
-
-#site-menu-icon {
-  height: 30px;
-  left: 0px;
-  opacity: 0.7;
-  filter: grayscale(1);
-  z-index: 10;
-}
-
-#site-menu-icon-container:hover #site-menu-icon {
-  opacity: 1;
-  filter: grayscale(0);
-}
-
-#site-menu {
-  position: fixed;
-  width: 130px;
-  padding-bottom: 6px;
-  padding-left: 6px;
-  box-shadow: 1px 1px 1px #989898;
-  @include flex;
-  @include flex-column;
-  background-color: #ffffff;
-  text-align: left;
-  opacity: 0;
-  transition: all 0.5s;
-  z-index: 3;
-}
-
-#site-menu.closed {
-  opacity: 0 !important;
-  visibility: hidden;
-  transition: all 0.5s;
-}
-
-#site-menu.opened {
-  opacity: 1 !important;
-  transition: all 0.5s;
-}
-
-#site-menu-spacer-row {
-  height: 44px;
-}
-
-.site-menu-row {
-  height: 20px;
-  opacity: 0.5;
-  cursor: pointer;
-}
-
-.site-menu-row:hover {
-  opacity: 1;
-}
-
-.site-menu-row td {
-  padding-top: 0px;
-  padding-bottom: 0px;
-  padding-left: 1px;
-  padding-right: 1px;
-  line-height: 1;
-}
-
-.site-menu-image-cell {
-  width: 18px;
-}
-
-.site-menu-image {
-  height: 12px;
-  filter: grayscale(1);
-}
-
-.site-menu-row:hover .site-menu-image {
-  filter: grayscale(0);
-}
-
-.site-menu-text {
-  font-family: $cp-font;
-  font-size: 12px;
-  color: $secondary-color-mobile !important;
-}
-
 a, button {
   padding: 0px;
   border: none;
@@ -204,22 +95,6 @@ a, button {
 
 a:hover {
   color: #b3b3b3;
-}
-
-#account-menu {
-  margin-right: 3px;
-  top: 0px;
-  right: 0px;
-  @include flex;
-  @include align-center;
-  @include justify-center;
-  font-family: $cp-font;
-  font-size: 12px;
-  z-index: 10;
-}
-
-#profile-link, #account-link {
-  margin-right: 7px;
 }
 
 #title {
@@ -420,14 +295,61 @@ button.selected {
   height: 15px;
 }
 
+#header {
+  position: fixed;
+  top: 0px;
+  right: 0px;
+  padding: 8px 16px;
+  display: flex;
+  z-index: 5;
+}
+
+/* Fleet apps menu + footer (src/fleet/, vendored byte-identical). hn-stats
+   has only Sass variables, so these are literals from its palette. The accent
+   is the desktop dashboard's #3f00ff: 7.9:1 on the white panel as the
+   current-app ring and focus outline, 7.4:1 on the yellow phone ground behind
+   the trigger, and it carries white text at 7.9:1. The title orange is 2.3:1
+   on white, too faint for either job. */
+:root {
+  --fleet-accent: #{$primary-color-desktop};
+  --fleet-on-accent: #ffffff;
+  --fleet-surface: #ffffff;
+  --fleet-ink: #000000;
+  --fleet-muted: #595959;
+  --fleet-line: #d4d4d4;
+  --fleet-font: #{$cp-font};
+  --fleet-radius: 12px;
+  --fleet-footer-clear: 0px;
+}
+
+/* The panel portals to body, which sets 10pt; rows read at 16px instead. */
+.fleet-panel {
+  font-size: 1rem;
+}
+
+/* No global border-box here, so the 360px panel would paint wider. */
+.fleet-panel, .fleet-panel *, .fleet-footer, .fleet-trigger {
+  box-sizing: border-box;
+}
+
+/* The global a/button reset strips every outline and the a:hover grays
+   (!important on desktop) would wash out tile and footer labels; keep both
+   off the kit. */
+.fleet-app:hover, .fleet-footer a:hover {
+  color: inherit !important;
+}
+
+.fleet-app:focus-visible, .fleet-row:focus-visible, .fleet-footer a:focus-visible {
+  outline: 2px solid var(--fleet-accent);
+  outline-offset: 2px;
+}
+
+.fleet-footer a {
+  text-decoration: underline;
+}
+
 #footer {
-  margin-top: 5px;
-  margin-bottom: 5px;
-  font-family: $cp-font;
-  font-size: 12px;
-  color: $title-color;
-  text-align: center;
-  line-height: 1.3;
+  width: 100%;
 }
 
 @media only screen and (min-width: 750px) {
@@ -437,30 +359,6 @@ button.selected {
 
   body, td {
     color: $secondary-color-desktop;
-  }
-
-  #site-menu {
-    width: 150px;
-  }
-
-  .site-menu-text, #account-menu {
-    font-size: 14px;
-  }
-
-  .site-menu-row {
-    height: 23px;
-  }
-
-  .site-menu-image-cell {
-    width: 22px;
-  }
-
-  .site-menu-image {
-    height: 15px;
-  }
-
-  #account-menu a {
-    color: $title-color;
   }
 
   button {
