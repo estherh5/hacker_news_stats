@@ -102,7 +102,10 @@ a:hover {
   margin-top: 22px;
   top: 0px;
   font-family: 'Cutive Mono', monospace;
-  font-size: 28px;
+  /* The wordmark starts ~64px in and is ~8.7em wide; on narrow screens it
+     shrinks so it clears the fleet menu trigger (60px from the edge) by 8px
+     or more, even with a 15px classic scrollbar. */
+  font-size: min(28px, calc(11.4vw - 18px));
   font-weight: bold;
   font-variant: all-petite-caps;
   color: $title-color;
