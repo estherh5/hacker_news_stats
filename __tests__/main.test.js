@@ -121,6 +121,7 @@ describe.each([
 describe('fleet apps + account menu', () => {
   const verifyUrl = 'https://api.crystalprism.io/api/user/verify';
   const signInUrl = 'https://account.crystalprism.io/sign-in/';
+  const logoutUrl = 'https://api.crystalprism.io/api/logout';
 
   // apps.json fails over to the bundled fallback; verify answers per test
   const stubFetch = (verifyResponse) => {
@@ -185,20 +186,37 @@ describe('fleet apps + account menu', () => {
       .toBe('https://hn-stats.crystalprism.io/');
   });
 
-  test('signed out (no token) shows a single Sign in row', async () => {
+  test('signed out (401) shows a single Sign in row', async () => {
+    localStorage.setItem('username', 'dang');
+    stubFetch({ ok: false, status: 401 });
     createPageHeader();
-    await checkIfLoggedIn();
-    const panel = openPanel();
 
+    await expect(checkIfLoggedIn()).resolves.toBe(false);
+    const panel = openPanel();
     expect(panel.querySelector('.fleet-email')).toBeNull();
     expect(rows(panel)).toEqual([
       { label: 'Sign in', tag: 'A', href: signInUrl },
     ]);
-    expect(fetch).not.toHaveBeenCalledWith(verifyUrl, expect.anything());
+    expect(localStorage.getItem('username')).toBeNull();
+  });
+
+  test('asks the API with the shared session cookie, never a stored token', async () => {
+    // A pre-cookie token left on this origin is dropped, not sent
+    localStorage.setItem('token', 'stale');
+    stubFetch({ ok: false, status: 401 });
+    createPageHeader();
+
+    await checkIfLoggedIn();
+    expect(fetch).toHaveBeenCalledWith(verifyUrl, expect.objectContaining({
+      credentials: 'include',
+      method: 'GET',
+    }));
+    const [, options] = fetch.mock.calls.find(([url]) => url === verifyUrl);
+    expect(options.headers).toBeUndefined();
+    expect(localStorage.getItem('token')).toBeNull();
   });
 
   test('signed in shows the username, Settings and Sign out', async () => {
-    localStorage.setItem('token', 'good');
     stubFetch({ ok: true, json: () => Promise.resolve({ username: 'dang' }) });
     createPageHeader();
 
@@ -215,50 +233,93 @@ describe('fleet apps + account menu', () => {
         href: 'https://account.crystalprism.io/my-account/' },
       { label: 'Sign out', tag: 'BUTTON', href: null },
     ]);
+    expect(localStorage.getItem('username')).toBe('dang');
   });
 
-  test('Sign out forgets the session and asks the account site to log out', async () => {
-    localStorage.setItem('token', 'good');
-    stubFetch({ ok: true, json: () => Promise.resolve({ username: 'dang' }) });
+  test('Sign out POSTs to the API once, then lands on Sign In', async () => {
+    let finishLogout;
+    fetch.mockImplementation((url) => {
+      if (url === verifyUrl) {
+        return Promise.resolve(
+          { ok: true, json: () => Promise.resolve({ username: 'dang' }) });
+      }
+      if (url === logoutUrl) {
+        return new Promise((resolve) => { finishLogout = resolve; });
+      }
+      return Promise.reject(new Error('offline'));
+    });
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
     createPageHeader();
     await checkIfLoggedIn();
-    const panel = openPanel();
 
-    // jsdom cannot navigate, so the Sign In redirect only logs to stderr here
-    const signOutRow = Array.from(panel.querySelectorAll('.fleet-row'))
+    const signOutRow = Array.from(openPanel().querySelectorAll('.fleet-row'))
       .find((row) => row.textContent === 'Sign out');
     signOutRow.click();
-
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(localStorage.getItem('username')).toBeNull();
-    expect(sessionStorage.getItem('account-request')).toBe('logout');
     expect(document.querySelector('.fleet-panel')).toBeNull();
+
+    // While the request is out, the row says so and a second click is inert
+    const pending = Array.from(openPanel().querySelectorAll('.fleet-row'))
+      .find((row) => row.textContent === 'Signing out…');
+    pending.click();
+    const logoutCalls = () => fetch.mock.calls
+      .filter(([url]) => url === logoutUrl);
+    expect(logoutCalls()).toHaveLength(1);
+    expect(logoutCalls()[0][1]).toEqual(expect.objectContaining({
+      credentials: 'include',
+      method: 'POST',
+    }));
+    expect(assign).not.toHaveBeenCalled();
+
+    finishLogout({ ok: true });
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledTimes(1));
+    expect(assign).toHaveBeenCalledWith(signInUrl + '?signed-out');
+    expect(localStorage.getItem('username')).toBeNull();
   });
 
-  test('a dead token (401) falls back to the Sign in row', async () => {
-    localStorage.setItem('token', 'dead');
-    localStorage.setItem('username', 'dang');
-    stubFetch({ ok: false, status: 401 });
+  test('a failed sign-out keeps the username and still lands on Sign In', async () => {
+    fetch.mockImplementation((url) => {
+      if (url === verifyUrl) {
+        return Promise.resolve(
+          { ok: true, json: () => Promise.resolve({ username: 'dang' }) });
+      }
+      return Promise.reject(new Error('offline'));
+    });
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
     createPageHeader();
+    await checkIfLoggedIn();
 
-    await expect(checkIfLoggedIn()).resolves.toBe(false);
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(rows(openPanel()).map((row) => row.label)).toEqual(['Sign in']);
+    Array.from(openPanel().querySelectorAll('.fleet-row'))
+      .find((row) => row.textContent === 'Sign out').click();
+
+    // Sign In's own session check reports "still signed in"
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledTimes(1));
+    expect(assign).toHaveBeenCalledWith(signInUrl + '?signed-out');
+    expect(localStorage.getItem('username')).toBe('dang');
   });
 
   test('an unreachable account server keeps the cached username signed in', async () => {
-    localStorage.setItem('token', 'good');
     localStorage.setItem('username', 'dang');
     stubFetch(new Error('offline'));
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     createPageHeader();
 
     await expect(checkIfLoggedIn()).resolves.toBe(true);
-    expect(localStorage.getItem('token')).toBe('good');
     expect(rows(openPanel()).map((row) => row.label))
       .toEqual(['Settings', 'Sign out']);
   });
+
+  test('an unreachable server with no cached username shows Sign in', async () => {
+    stubFetch(new Error('offline'));
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    createPageHeader();
+
+    await expect(checkIfLoggedIn()).resolves.toBe(false);
+    expect(rows(openPanel()).map((row) => row.label)).toEqual(['Sign in']);
+  });
 });
+
 
 describe('fleet footer', () => {
   afterEach(() => {

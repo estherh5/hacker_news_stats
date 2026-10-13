@@ -10,6 +10,8 @@ import './style.scss';
 const FLEET_KEY = 'hn-stats';
 const signInUrl = 'https://account.crystalprism.io/sign-in/';
 let fleetMenu;
+let menuUsername = null;
+let signingOut = false;
 let selectedButton = document.getElementById('hour');
 let pieChart;
 let barChart;
@@ -27,7 +29,6 @@ const api = import.meta.env.VITE_API_URL ?? (
 above -- this page reads stats from hn-api and identity from api. */
 const accountApi = import.meta.env.VITE_ACCOUNT_API_URL ??
   'https://api.crystalprism.io/api';
-const currentPath = window.location.pathname.split('/').filter(Boolean).at(-1);
 
 function initialize() {
   // Remove sessionStorage data to load latest data
@@ -105,81 +106,82 @@ function setSignedOutMenu() {
 }
 
 
-// Show the signed-in menu for a known username: Settings and Sign out
+// Show the signed-in menu for a known username: Settings and Sign out, which
+// reads "Signing out…" and does nothing while a sign-out is under way
 function setSignedInMenu(username) {
+  menuUsername = username;
   fleetMenu.setUser({ label: username }, [
     { label: 'Settings', href: 'https://account.crystalprism.io/my-account/' },
-    { label: 'Sign out', onSelect: signOut },
+    signingOut ? { label: 'Signing out…', onSelect: function() {} }
+      : { label: 'Sign out', onSelect: signOut },
   ]);
 }
 
 
-/* Sign out: forget this origin's session, ask the account site to log out,
-and land on its Sign In page as the old "Sign Out" link did */
+/* Sign out: a POST to the API, the only thing that can clear the HttpOnly
+cp_session cookie. Then land on the account site's Sign In page, which reads
+the outcome from its own session check: signed out, or "still signed in" if
+the request failed. A request that stalls is abandoned after 4s */
 function signOut() {
-  localStorage.removeItem('token');
-  localStorage.removeItem('username');
-  sessionStorage.setItem('account-request', 'logout');
-  window.location.assign(signInUrl);
+  if (signingOut) {
+    return Promise.resolve();
+  }
+  signingOut = true;
+  setSignedInMenu(menuUsername);
+  document.body.style.cursor = 'progress';
+
+  return fetchWithTimeout(accountApi + '/logout', { method: 'POST' })
+    .then(function(response) {
+      if (response.ok) {
+        localStorage.removeItem('username');
+      }
+    })
+    .catch(function() {})
+    .then(function() {
+      window.location.assign(signInUrl + '?signed-out');
+
+      // The page is leaving; reset in case the navigation never happens
+      signingOut = false;
+      document.body.style.cursor = '';
+    });
 }
 
 
-// Check if user is logged into Crystal Prism by assessing JWT token's validity
+/* Check if user is logged into Crystal Prism. The session is the API's
+HttpOnly cp_session cookie, shared by every crystalprism.io subdomain, so
+script never sees it: /user/verify is the answer, and the stored username is
+only this origin's hint for when the API cannot be reached */
 function checkIfLoggedIn() {
-  // If user does not have a token stored locally, set account menu to default
-  if (!localStorage.getItem('token')) {
-    setSignedOutMenu();
+  // Pre-cookie sessions kept a token here; none is valid any longer
+  localStorage.removeItem('token');
 
-    return false;
-  }
-
-  /* Otherwise, check if the user is logged in by sending their token to the
-  server */
-  return fetch(accountApi + '/user/verify', {
-    headers: {'Authorization': 'Bearer ' + localStorage.getItem('token')},
-    method: 'GET',
-  })
-
+  return fetchWithTimeout(accountApi + '/user/verify', { method: 'GET' })
     .then(function(response) {
-      /* If server verifies token is correct, display link to profile, My
-      Account page, and Sign In page (with "Sign Out" title) */
+      // If server verifies the session, show the username, Settings, Sign out
       if (response.ok) {
         return response.json().then(function(payload) {
-          // Set localStorage username to payload username
           localStorage.setItem('username', payload.username);
-
           setSignedInMenu(payload.username);
-
           return true;
         });
       }
 
-      /* If server responds with unauthorized status, the token is genuinely
-      dead -- discard it and set the account menu to default */
+      // If server responds with unauthorized status, the visitor is signed out
       if (response.status === 401) {
         localStorage.removeItem('username');
-        localStorage.removeItem('token');
         setSignedOutMenu();
-
-        // Redirect to Sign In page if user is on My Account page
-        if (currentPath === 'my-account') {
-          sessionStorage.setItem('account-request', 'logout');
-          window.location = '../sign-in/';
-        }
-
         return false;
       }
 
       /* Any other status means the server answered but could not tell us
-      anything about this token. Treat it like an unreachable server. */
+      anything about this session. Treat it like an unreachable server. */
       throw new Error('Unexpected verify status: ' + response.status);
     })
 
-    /* The account server is unreachable or errored. This does NOT mean the
-    user is signed out, so do not discard their token and do not invite them
-    to create a second account -- fall back to the username cached by the last
-    successful verify, and only show the signed-out menu if we have no idea
-    who they are. */
+    /* The account server is unreachable, stalled or errored. This does NOT
+    mean the visitor is signed out, so fall back to the username cached by the
+    last successful verify, and only show the signed-out menu if we have no
+    idea who they are. */
     .catch(function(error) {
       console.warn('Could not verify Crystal Prism session:', error);
 
@@ -187,13 +189,26 @@ function checkIfLoggedIn() {
 
       if (cachedUsername) {
         setSignedInMenu(cachedUsername);
-
         return true;
       }
 
       setSignedOutMenu();
-
       return false;
+    });
+}
+
+
+// Fetch from the account API with the session cookie, abandoning after 4s
+function fetchWithTimeout(url, options) {
+  const controller = new AbortController();
+  const timer = setTimeout(function() { controller.abort(); }, 4000);
+
+  return fetch(url, Object.assign({
+    credentials: 'include',
+    signal: controller.signal,
+  }, options))
+    .finally(function() {
+      clearTimeout(timer);
     });
 }
 

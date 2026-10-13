@@ -6,6 +6,8 @@ Committed doc, not scratch. Kept current by hand as work ships.
 
 ## Shipped
 
+- **2026-10 — Signed-in state carries over from the rest of Crystal Prism.** The menu showed signed out for everyone, because it looked for a token in this origin's `localStorage` that the account site stopped writing when sessions became the API's `cp_session` cookie. Decided 2026-10-12: join that cookie session, not a `.crystalprism.io` cookie or a token hand-off (the first sends the cookie to every fleet subdomain; the second brings back script-readable tokens). `checkIfLoggedIn` in `src/main.js` now sends a credentialed `GET /api/user/verify`, and Sign out sends `POST /api/logout`, reads "Signing out…" while it runs, then lands on `account.crystalprism.io/sign-in/?signed-out`. Both requests give up after 4s. An unreachable API still shows the cached username. Needed `hn-stats.crystalprism.io` in api.crystalprism.io's `user.ALLOWED_ORIGINS` (4df3a0a).
+
 - **2026-10 — Fleet apps + account menu and footer.** The hand-ported site menu (top-left) and the profile / My Account / Sign In links are gone; the fleet kit's apps menu sits at the header's trailing end, listing every live app from `crystalprism.io/apps.json` (bundled fallback on failure). Its rows follow the existing Crystal Prism session check: signed in shows the username, Settings (My Account) and Sign out; signed out shows Sign in. The kit footer replaces the static copyright line. Vanilla kit copied byte-identical into `src/fleet/`; tokens in `src/style.scss`.
 
 ## Next
@@ -13,5 +15,3 @@ Committed doc, not scratch. Kept current by hand as work ships.
 ## Declined
 
 ## Open questions
-
-- **Does the Crystal Prism session ever reach this origin?** `checkIfLoggedIn` in `src/main.js` reads `localStorage.token`, but sign-in happens on `account.crystalprism.io`, a different origin since the apps moved to subdomains, so this page likely always shows the signed-out menu. The sign-out's `sessionStorage` `account-request` hand-off has the same origin gap. Settled by deciding whether legacy accounts should carry across subdomains (a cookie on `.crystalprism.io` or a token hand-off) or be retired.
