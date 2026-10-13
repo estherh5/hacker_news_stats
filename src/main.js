@@ -76,6 +76,7 @@ function createPageHeader() {
     user: null,
     rows: [],
     placement: 'down-end',
+    triggerClass: 'hn-fleet-trigger',
   });
 
   // Swap in the live list from crystalprism.io/apps.json when it arrives

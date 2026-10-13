@@ -224,7 +224,9 @@ describe('fleet apps + account menu', () => {
     const trigger = document.querySelector('#header .fleet-trigger');
     expect(trigger.getAttribute('aria-label'))
       .toBe('Apps and account, dang');
-    expect(trigger.textContent).toBe('D');
+    expect(trigger.textContent).toBe('');
+    expect(trigger.querySelector('svg')).not.toBeNull();
+    expect(trigger.classList.contains('hn-fleet-trigger')).toBe(true);
 
     const panel = openPanel();
     expect(panel.querySelector('.fleet-email').textContent).toBe('dang');

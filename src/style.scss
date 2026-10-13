@@ -311,11 +311,9 @@ button.selected {
    has only Sass variables, so these are literals from its palette. The accent
    is the desktop dashboard's #3f00ff: 7.9:1 on the white panel as the
    current-app ring and focus outline, 7.4:1 on the yellow phone ground behind
-   the trigger, and it carries white text at 7.9:1. The title orange is 2.3:1
-   on white, too faint for either job. */
+   the trigger. The title orange is 2.3:1 on white, too faint for either job. */
 :root {
   --fleet-accent: #{$primary-color-desktop};
-  --fleet-on-accent: #ffffff;
   --fleet-surface: #ffffff;
   --fleet-ink: #000000;
   --fleet-muted: #595959;
@@ -349,6 +347,30 @@ button.selected {
 
 .fleet-footer a {
   text-decoration: underline;
+}
+
+/* The trigger (triggerClass hn-fleet-trigger) wears hn-stats' own buttons, the
+   global a/button reset above: bare ink, square, no border, fill, hover or
+   press. That reset sets no radius, transform or transition, so these reset
+   the kit's fallback circle and press; it also strips every outline, so the
+   trigger keeps the panel's focus ring. On desktop it sits on the gray gutter,
+   not the purple dashboard, where the buttons' #f0f0f0 ink would vanish: there
+   it takes the dashboard's purple (7.0:1 on #f0f0f0). */
+.fleet-trigger.hn-fleet-trigger {
+  border-radius: initial;
+  transform: initial;
+  transition: initial;
+}
+
+.fleet-trigger.hn-fleet-trigger:focus-visible {
+  outline: 2px solid var(--fleet-accent);
+  outline-offset: 2px;
+}
+
+@media only screen and (min-width: 750px) {
+  .fleet-trigger.hn-fleet-trigger {
+    color: $primary-color-desktop;
+  }
 }
 
 #footer {
