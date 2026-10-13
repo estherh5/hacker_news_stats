@@ -335,12 +335,13 @@ describe('fleet footer', () => {
     const links = Array.from(footers[0].querySelectorAll('a'));
     expect(links.map((a) => a.textContent)).toEqual([
       `© 2017–${new Date().getFullYear()} Crystal Prism`,
-      'All apps',
     ]);
     expect(links.map((a) => a.getAttribute('href'))).toEqual([
       'https://crystalprism.io',
-      'https://crystalprism.io/#projects',
     ]);
+    expect(footers[0].textContent).not.toContain('All apps');
+    expect(footers[0].querySelector('a[href="https://crystalprism.io/#projects"]')).toBeNull();
+    expect(footers[0].querySelector('span[aria-hidden="true"]')).toBeNull();
     expect(document.body.textContent).not.toContain('© Copyright');
     expect(document.getElementById('copyright-year')).toBeNull();
   });
