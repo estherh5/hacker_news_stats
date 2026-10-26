@@ -258,12 +258,13 @@ describe('fleet apps + account menu', () => {
     const signOutRow = Array.from(openPanel().querySelectorAll('.fleet-row'))
       .find((row) => row.textContent === 'Sign out');
     signOutRow.click();
-    expect(document.querySelector('.fleet-panel')).toBeNull();
 
-    // While the request is out, the row says so and a second click is inert
-    const pending = Array.from(openPanel().querySelectorAll('.fleet-row'))
-      .find((row) => row.textContent === 'Signing out…');
-    pending.click();
+    // While the request is out, the menu stays open on the row, which says so
+    // and ignores a second click
+    expect(document.querySelector('.fleet-panel')).not.toBeNull();
+    expect(signOutRow.textContent).toBe('Signing out…');
+    expect(signOutRow.getAttribute('aria-disabled')).toBe('true');
+    signOutRow.click();
     const logoutCalls = () => fetch.mock.calls
       .filter(([url]) => url === logoutUrl);
     expect(logoutCalls()).toHaveLength(1);

@@ -108,13 +108,12 @@ function setSignedOutMenu() {
 
 
 // Show the signed-in menu for a known username: Settings and Sign out, which
-// reads "Signing out…" and does nothing while a sign-out is under way
+// the kit holds open on "Signing out…" while a sign-out is under way
 function setSignedInMenu(username) {
   menuUsername = username;
   fleetMenu.setUser({ label: username }, [
     { label: 'Settings', href: 'https://account.crystalprism.io/my-account/' },
-    signingOut ? { label: 'Signing out…', onSelect: function() {} }
-      : { label: 'Sign out', onSelect: signOut },
+    { label: 'Sign out', busyLabel: 'Signing out…', onSelect: signOut },
   ]);
 }
 
@@ -128,7 +127,6 @@ function signOut() {
     return Promise.resolve();
   }
   signingOut = true;
-  setSignedInMenu(menuUsername);
   document.body.style.cursor = 'progress';
 
   return fetchWithTimeout(accountApi + '/logout', { method: 'POST' })
