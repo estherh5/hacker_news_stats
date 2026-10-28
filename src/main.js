@@ -545,7 +545,7 @@ function displayBarChart(data) {
         // Whole titles, wrapped over up to three lines beside each bar
         formatter: function () {
           return '<a class="bar-title" href="' + links[this.value] +
-            '" target="_blank" rel="noopener">' + this.value + '</a>';
+            '" target="_blank">' + this.value + '</a>';
         },
         style: {
           fontFamily: 'Lekton, sans-serif',
@@ -651,6 +651,8 @@ function displayWordCloud(words) {
       type: 'wordcloud',
       data: data,
       name: 'Occurrences',
+      // Words smaller than this are dropped rather than drawn unreadably
+      minFontSize: 10,
       style: {
         fontFamily: 'Lekton, sans-serif'
       }
@@ -761,6 +763,9 @@ function displayBubbleChart(data) {
     },
     xAxis: {
       categories: names,
+      // Only the users' own slots; bubble padding would add -1 and 5
+      min: 0,
+      max: names.length - 1,
       title: {
         text: 'User',
         style: {
@@ -774,8 +779,11 @@ function displayBubbleChart(data) {
         },
         y: 25,
         formatter: function () {
+          if (!names.includes(this.value)) {
+            return '';
+          }
           return '<a href="' + 'https://news.ycombinator.com/' +
-            'user?id=' + this.value + '" target="_blank" rel="noopener">' +
+            'user?id=' + this.value + '" target="_blank">' +
             this.value + '</a>';
         },
         useHTML: true
@@ -783,6 +791,8 @@ function displayBubbleChart(data) {
     },
     yAxis: {
       allowDecimals: false,
+      // From zero, so the fifth user's count does not read as nothing
+      min: 0,
       title: {
         text: 'Comments',
         style: {
@@ -816,8 +826,8 @@ function displayBubbleChart(data) {
         fillOpacity: 0.8
       },
       // Big enough that the smallest bubble still holds its word count
-      minSize: '18%',
-      maxSize: '36%',
+      minSize: '15%',
+      maxSize: '28%',
       name: 'User comment count',
       data: bubbleData,
       dataLabels: {

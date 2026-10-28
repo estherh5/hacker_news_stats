@@ -209,6 +209,11 @@ button {
   @include justify-center;
 }
 
+#period-note {
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+
 #header-bottom-spacer {
   display: block;
 }
@@ -370,7 +375,7 @@ button {
 .highcharts-axis-labels a.bar-title {
   display: block;
   white-space: normal;
-  line-height: 1.25;
+  line-height: 1.3;
   text-align: right;
 }
 
