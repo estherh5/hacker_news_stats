@@ -10,6 +10,7 @@ vi.mock('highcharts/modules/accessibility', () => ({}));
 
 import Highcharts from 'highcharts';
 import {
+  checkForNewScrape,
   checkIfLoggedIn,
   createPageFooter,
   createPageHeader,
@@ -17,6 +18,7 @@ import {
   getCommentWords,
   getPostTypes,
   getUserCommentCounts,
+  periodFromUrl,
 } from '../src/main.js';
 
 const timePeriods = ['hour', 'day', 'week', 'all'];
@@ -92,7 +94,7 @@ describe.each([
 
   test('keeps the existing chart visible while new data loads', async () => {
     const container = document.getElementById(({
-      post_types: 'post-types-pie',
+      post_types: 'post-types',
       'posts_highest_comment_count?count=5': 'comment-count-bar',
       'comment_words?count=50': 'comment-word-cloud',
       'users_most_comments?count=5': 'user-comment-bubble',
@@ -121,7 +123,7 @@ describe.each([
 
 
 describe('panel states', () => {
-  const container = () => document.getElementById('post-types-pie');
+  const container = () => document.getElementById('post-types');
 
   test('an empty period says so instead of drawing an empty chart', async () => {
     fetch.mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([]) });
@@ -165,7 +167,7 @@ describe('panel states', () => {
     await getPostTypes('week');
 
     const note = container().parentElement.querySelector('.stale-note');
-    expect(Highcharts.chart).toHaveBeenCalled();
+    expect(container().querySelector('.post-type-counts')).not.toBeNull();
     expect(note.textContent).toContain('Saved copy. Couldn\u2019t reach the server.');
 
     fetch.mockResolvedValueOnce({ ok: true, json: vi.fn().mockResolvedValue([]) });
@@ -192,13 +194,105 @@ describe('panel states', () => {
 
     const slow = getPostTypes('week');
     await getPostTypes('hour');
-    Highcharts.chart.mockClear();
     resolveSlow({ ok: true, json: vi.fn().mockResolvedValue([{ type: 'ask', type_count: 1 }]) });
     await slow;
 
-    expect(Highcharts.chart).not.toHaveBeenCalled();
+    expect(container().querySelector('.post-type-counts')).toBeNull();
     expect(container().querySelector('.panel-message').textContent)
       .toBe('No post types in the past hour.');
+  });
+});
+
+describe('post types', () => {
+  test('lists every type as a count, zeros too, in a fixed order', async () => {
+    fetch.mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([
+      { type: 'show', type_count: 1 },
+      { type: 'article', type_count: 1089 },
+    ]) });
+
+    await getPostTypes('day');
+
+    const rows = [...document.querySelectorAll('#post-types dl > div')]
+      .map((row) => [row.querySelector('dd').textContent,
+        row.querySelector('dt').textContent]);
+    expect(rows).toEqual([
+      ['1,089', 'articles'], ['1', 'Show HN'], ['0', 'Ask HN'], ['0', 'jobs'],
+    ]);
+    expect(document.querySelector('#post-types .panel-title').textContent)
+      .toBe('Post types');
+  });
+});
+
+describe('period in the URL', () => {
+  afterEach(() => {
+    history.replaceState(null, '', '/');
+    document.getElementById('day').click();
+  });
+
+  test('a known period in the URL opens on it; anything else on the past day', () => {
+    history.replaceState(null, '', '/?period=all');
+    expect(periodFromUrl()).toBe('all');
+    history.replaceState(null, '', '/?period=year');
+    expect(periodFromUrl()).toBe('day');
+    history.replaceState(null, '', '/');
+    expect(periodFromUrl()).toBe('day');
+  });
+
+  test('picking a period puts it in the URL; the past day leaves it clean', () => {
+    document.getElementById('week').click();
+    expect(window.location.search).toBe('?period=week');
+    expect(document.getElementById('week').getAttribute('aria-pressed'))
+      .toBe('true');
+
+    document.getElementById('day').click();
+    expect(window.location.search).toBe('');
+  });
+});
+
+describe('latest snapshot', () => {
+  const lastScrape = (scrapedAt) => ({
+    ok: true,
+    json: vi.fn().mockResolvedValue({ scraped_at: scrapedAt }),
+  });
+
+  test('a failed check leaves the line empty', async () => {
+    fetch.mockRejectedValue(new Error('offline'));
+
+    await checkForNewScrape();
+
+    expect(document.getElementById('last-scrape').textContent).toBe('');
+  });
+
+  test('shows the time, and a newer snapshot drops the kept periods', async () => {
+    fetch.mockResolvedValueOnce(lastScrape('2026-10-28T12:21:11+00:00'));
+    sessionStorage.setItem('hn-post-types-day', '[]');
+
+    await checkForNewScrape();
+
+    const time = document.querySelector('#last-scrape time');
+    expect(document.getElementById('last-scrape').textContent)
+      .toMatch(/^Latest snapshot /);
+    expect(time.dateTime).toBe('2026-10-28T12:21:11+00:00');
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:5000/api/hacker_news/last_scrape');
+    // The first answer only labels the page; nothing is reloaded
+    expect(sessionStorage.getItem('hn-post-types-day')).toBe('[]');
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    fetch.mockResolvedValueOnce(lastScrape('2026-10-28T12:21:11+00:00'));
+    await checkForNewScrape();
+    expect(fetch).toHaveBeenCalledTimes(2);
+
+    fetch.mockResolvedValueOnce(lastScrape('2026-10-28T13:07:40+00:00'));
+    fetch.mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([]) });
+    await checkForNewScrape();
+
+    expect(time.isConnected).toBe(false);
+    expect(document.querySelector('#last-scrape time').dateTime)
+      .toBe('2026-10-28T13:07:40+00:00');
+    expect(sessionStorage.getItem('hn-post-types-day')).toBeNull();
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:5000/api/hacker_news/stats/day/post_types');
   });
 });
 

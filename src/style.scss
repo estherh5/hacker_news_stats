@@ -210,6 +210,13 @@ button {
 }
 
 #period-note {
+  margin: 0 0 2px;
+  font-size: 12px;
+}
+
+/* Filled in once the API answers; holds its line so the header never jumps */
+#last-scrape {
+  min-height: 1.3em;
   margin: 0 0 8px;
   font-size: 12px;
 }
@@ -231,7 +238,7 @@ button {
 }
 
 #table-top-margin {
-  height: 140px;
+  height: 156px;
 }
 
 #inner-table-row {
@@ -411,6 +418,63 @@ $cloud-inks-desktop: $secondary-color-desktop, #ffff00, #00e7ff, #6eff00, #ffd1a
   fill: $primary-color-desktop !important;
 }
 
+/* Bars in the dashboard's own colors, not Highcharts' #2caffe (2.3:1 on the
+   yellow): violet here, cyan on the violet ground. Counts sit past each bar's
+   end on the ground, in its ink. */
+.highcharts-bar-series .highcharts-point {
+  fill: $primary-color-desktop !important;
+}
+
+.highcharts-data-labels.highcharts-bar-series text {
+  fill: $secondary-color-mobile !important;
+}
+
+/* Post types are counts, not a chart; the title matches the charts' titles */
+.panel-title {
+  position: absolute;
+  top: 0;
+  margin: 8px 0 0;
+  font-family: 'Cutive Mono', monospace;
+  font-size: 20px;
+  font-weight: bold;
+  color: $title-color-mobile;
+}
+
+/* Four lines of counts need less than a chart's 400px in one column; the
+   2x2 grid below gives it the full height so the row stays even */
+#post-types {
+  height: 280px;
+}
+
+.post-type-counts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-auto-flow: dense;
+  column-gap: 14px;
+  row-gap: 6px;
+  align-items: baseline;
+}
+
+/* Each row is dt then dd in the markup; the count reads first */
+.post-type-counts div {
+  display: contents;
+}
+
+.post-type-counts dd {
+  grid-column: 1;
+  margin: 0;
+  font-family: 'Cutive Mono', monospace;
+  font-size: 34px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.post-type-counts dt {
+  grid-column: 2;
+  font-size: 15px;
+}
+
 /* Bubble labels sit inside the bubbles: light on violet, ink on cyan */
 .highcharts-bubble-series .highcharts-data-label text {
   fill: $secondary-color-desktop !important;
@@ -545,7 +609,7 @@ $cloud-inks-desktop: $secondary-color-desktop, #ffff00, #00e7ff, #6eff00, #ffd1a
   }
 
   #table-top-margin {
-    height: 128px;
+    height: 144px;
   }
 
   #buttons .period.selected {
@@ -575,6 +639,18 @@ $cloud-inks-desktop: $secondary-color-desktop, #ffff00, #00e7ff, #6eff00, #ffd1a
     fill: $secondary-color-mobile !important;
   }
 
+  .highcharts-bar-series .highcharts-point {
+    fill: #00e7ff !important;
+  }
+
+  .highcharts-data-labels.highcharts-bar-series text {
+    fill: $secondary-color-desktop !important;
+  }
+
+  .panel-title {
+    color: $title-color;
+  }
+
   #inner-table {
     background-color: $primary-color-desktop;
   }
@@ -601,5 +677,9 @@ $cloud-inks-desktop: $secondary-color-desktop, #ffff00, #00e7ff, #6eff00, #ffd1a
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     justify-items: center;
+  }
+
+  #post-types {
+    height: 400px;
   }
 }

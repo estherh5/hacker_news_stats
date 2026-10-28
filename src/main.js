@@ -14,7 +14,7 @@ let fleetMenu;
 let menuUsername = null;
 let signingOut = false;
 let selectedButton = document.getElementById('day');
-let pieChart;
+let lastScrapedAt = null;
 let barChart;
 let wordCloud;
 let bubbleChart;
@@ -33,14 +33,7 @@ const accountApi = import.meta.env.VITE_ACCOUNT_API_URL ??
 
 function initialize() {
   // Remove sessionStorage data to load latest data
-  let i = sessionStorage.length;
-
-  while(i--) {
-    const key = sessionStorage.key(i);
-    if(/hn-/.test(key)) {
-      sessionStorage.removeItem(key);
-    }
-  }
+  clearSessionStats();
 
   // Create page header with the fleet apps + account menu
   createPageHeader();
@@ -48,11 +41,10 @@ function initialize() {
   // Check if user is logged into Crystal Prism
   checkIfLoggedIn();
 
-  // Load every chart for the past day, the default period
-  getPostTypes('day');
-  getCommentCounts('day');
-  getCommentWords('day');
-  getUserCommentCounts('day');
+  // Open on the period in the URL, or the past day
+  selectPeriod(periodFromUrl());
+  loadPeriod(selectedButton.id);
+  checkForNewScrape();
 
   createPageFooter();
 }
@@ -207,23 +199,118 @@ function fetchWithTimeout(url, options) {
 }
 
 
-// Set a period button as selected when it is clicked and get its stats
+// The period named by ?period= in the URL, or the past day
+function periodFromUrl() {
+  const period = new URLSearchParams(window.location.search).get('period');
+  return Object.hasOwn(periodNames, period) ? period : 'day';
+}
+
+
+// Mark a period's button as the selected one
+function selectPeriod(period) {
+  selectedButton.classList.remove('selected');
+  selectedButton.setAttribute('aria-pressed', 'false');
+  selectedButton = document.getElementById(period);
+  selectedButton.classList.add('selected');
+  selectedButton.setAttribute('aria-pressed', 'true');
+}
+
+
+// Load every panel for a period
+function loadPeriod(period) {
+  getPostTypes(period);
+  getCommentCounts(period);
+  getCommentWords(period);
+  getUserCommentCounts(period);
+}
+
+
+/* Show when the newest snapshot was taken. Each period is kept for the
+session, so when a newer snapshot has landed since, drop the kept copies and
+reload the period on screen. */
+async function checkForNewScrape() {
+  let scrapedAt;
+
+  try {
+    const response = await fetch(`${api}/hacker_news/last_scrape`);
+    if (!response.ok) {
+      return;
+    }
+    scrapedAt = (await response.json()).scraped_at;
+  } catch {
+    return;
+  }
+
+  if (!scrapedAt || scrapedAt === lastScrapedAt) {
+    return;
+  }
+
+  const firstCheck = lastScrapedAt === null;
+  lastScrapedAt = scrapedAt;
+  showLastScrape(scrapedAt);
+
+  if (!firstCheck) {
+    clearSessionStats();
+    loadPeriod(selectedButton.id);
+  }
+}
+
+
+function showLastScrape(scrapedAt) {
+  const time = document.createElement('time');
+  time.dateTime = scrapedAt;
+  time.textContent = new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(scrapedAt));
+
+  document.getElementById('last-scrape')
+    .replaceChildren('Latest snapshot ', time);
+}
+
+
+function clearSessionStats() {
+  let i = sessionStorage.length;
+
+  while(i--) {
+    const key = sessionStorage.key(i);
+    if(/hn-/.test(key)) {
+      sessionStorage.removeItem(key);
+    }
+  }
+}
+
+
+// Set a period button as selected when it is clicked, put it in the URL so
+// the view can be shared, and get its stats
 for (const button of document.querySelectorAll('#buttons .period')) {
   button.addEventListener('click', function() {
-      selectedButton.classList.remove('selected');
-      selectedButton.setAttribute('aria-pressed', 'false');
-      this.classList.add('selected');
-      this.setAttribute('aria-pressed', 'true');
-      selectedButton = this;
+      selectPeriod(this.id);
 
-      getPostTypes(this.id);
-      getCommentCounts(this.id);
-      getCommentWords(this.id);
-      getUserCommentCounts(this.id);
+      const url = new URL(window.location.href);
+      if (this.id === 'day') {
+        url.searchParams.delete('period');
+      } else {
+        url.searchParams.set('period', this.id);
+      }
+      history.replaceState(null, '', url);
+
+      loadPeriod(this.id);
+      checkForNewScrape();
 
       return;
     }, false);
 }
+
+
+// A tab coming back into view checks for a newer snapshot
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') {
+    checkForNewScrape();
+  }
+});
 
 
 // The latest request per panel; a slower earlier one must not overwrite it
@@ -371,8 +458,8 @@ function showStaleNote(container, retry) {
 function getPostTypes(timePeriod) {
   return loadStats({
     cacheKey: 'hn-post-types',
-    containerId: 'post-types-pie',
-    display: displayPieChart,
+    containerId: 'post-types',
+    display: displayPostTypes,
     endpoint: 'post_types',
     load: getPostTypes,
     subject: 'post types',
@@ -380,86 +467,39 @@ function getPostTypes(timePeriod) {
 }
 
 
-// Display pie chart of passed data
-function displayPieChart(data) {
-  const pieContainer = document.getElementById('post-types-pie');
+const postTypeNames = [
+  ['article', 'articles'],
+  ['show', 'Show HN'],
+  ['ask', 'Ask HN'],
+  ['job', 'jobs'],
+];
 
-  const pieData = [];
 
-  for (let i = 0; i < data.length; i++) {
-    if (data[i].type === 'article') {
-      pieData.push({name: 'Articles', y: data[i].type_count});
-    }
+/* Post types as counts, not a pie: articles outnumber the rest about 90:1,
+so a pie is one slice and three slivers. Every type is listed, zeros too, in
+the same order for every period. */
+function displayPostTypes(data) {
+  const counts = Object.fromEntries(
+    data.map((row) => [row.type, row.type_count]));
 
-    else if (data[i].type === 'ask') {
-      pieData.push({name: 'Ask HN', y: data[i].type_count});
-    }
+  const title = document.createElement('h2');
+  title.className = 'panel-title';
+  title.textContent = 'Post types';
 
-    else if (data[i].type === 'show') {
-      pieData.push({name: 'Show HN', y: data[i].type_count});
-    }
+  const list = document.createElement('dl');
+  list.className = 'post-type-counts';
 
-    else {
-      pieData.push({name: 'Jobs', y: data[i].type_count});
-    }
+  for (const [type, name] of postTypeNames) {
+    const count = document.createElement('dd');
+    count.textContent = (counts[type] ?? 0).toLocaleString('en-US');
+    const label = document.createElement('dt');
+    label.textContent = name;
+    const row = document.createElement('div');
+    row.append(count, label);
+    list.appendChild(row);
   }
 
-  pieChart = Highcharts.chart('post-types-pie', {
-    chart: {
-      animation: 'true',
-      backgroundColor: 'none',
-      events: {
-        load: function() {
-          resize(this, pieContainer);
-          return;
-        }
-      },
-      reflow: 'true',
-      type: 'pie'
-    },
-    credits: {
-      enabled: false
-    },
-    title: {
-      text: 'Post types',
-      style: {
-        cursor: 'default',
-        fontFamily: 'Cutive Mono'
-      },
-    },
-    tooltip: {
-      pointFormat: '<span style="color:{point.color}">\u25CF' +
-        '</span> Posts: <b>{point.y} ({point.percentage:,.1f}%)' +
-        '</b><br/>',
-      style: {
-        fontFamily: 'Lekton, sans-serif'
-      }
-    },
-    plotOptions: {
-      pie: {
-        allowPointSelect: true,
-        borderColor: '#f0f0f0',
-        colors: ['#ff8d00', '#f9cf68', '#beeb9f', '#79bd8f'],
-        dataLabels: {
-          enabled: false
-        },
-        showInLegend: true,
-        legend: {
-          style: {
-            fontWeight: 'normal',
-            textOutline: '0px'
-          }
-        },
-        cursor: 'pointer',
-      }
-    },
-    series: [{
-      name: 'Post types',
-      data: pieData
-    }]
-  });
-
-  return;
+  document.getElementById('post-types').replaceChildren(title, list);
 }
 
 
@@ -508,8 +548,8 @@ function displayBarChart(data) {
         }
       },
       reflow: 'true',
-      // Room for the last tick label at the right edge
-      spacingRight: 24,
+      // Room for the last tick label and the longest bar's count
+      spacingRight: 36,
       type: 'bar'
     },
     credits: {
@@ -557,6 +597,8 @@ function displayBarChart(data) {
     },
     yAxis: {
       allowDecimals: false,
+      // Each bar carries its own count, so gridlines only cross the labels
+      gridLineWidth: 0,
       min: 0,
       title: {
         text: 'Comments',
@@ -585,9 +627,14 @@ function displayBarChart(data) {
     },
     series: [{
       name: 'Comment count',
+      borderWidth: 0,
       data: barData,
       dataLabels: {
         enabled: true,
+        // Always past the bar's end, on the ground, never inside the fill
+        crop: false,
+        inside: false,
+        overflow: 'allow',
         style: {
           fontFamily: 'Lekton, sans-serif',
           fontWeight: 'normal',
@@ -865,4 +912,5 @@ function resize(chart, container) {
 
 
 export { getPostTypes, getCommentCounts, getCommentWords,
-  getUserCommentCounts, createPageHeader, createPageFooter, checkIfLoggedIn };
+  getUserCommentCounts, createPageHeader, createPageFooter, checkIfLoggedIn,
+  checkForNewScrape, periodFromUrl };
