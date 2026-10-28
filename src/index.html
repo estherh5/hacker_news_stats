@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8">
     <meta name="description" content="View statistics for YCombinator's Hacker News website, including the most-commented articles, the users who post the most comments, and more.">
@@ -26,7 +26,7 @@
   </head>
   <body>
     <!-- Page title link -->
-    <a id="title" href=".">Hacker News Statsboard</a>
+    <h1 id="title"><a href=".">Hacker News Statsboard</a></h1>
 
     <!-- Main dashboard table -->
     <table id="main-table" border="0" cellpadding="0" cellspacing="0">
@@ -40,9 +40,13 @@
           <td id="header-cell">
 
             <!-- Toggle stats buttons -->
-            <div id="buttons">
-              <button id="hour" class="selected">past hour</button> | <button id="day">past day</button> | <button id="week">past week</button> | <button id="all">all time</button>
+            <div id="buttons" role="group" aria-label="Time period">
+              <button id="hour" type="button" class="period" aria-pressed="false">past hour</button>
+              <button id="day" type="button" class="period" aria-pressed="false">past day</button>
+              <button id="week" type="button" class="period" aria-pressed="false">past week</button>
+              <button id="all" type="button" class="period selected" aria-pressed="true">all time</button>
             </div>
+            <p id="archive-note">An archive: scraping stopped in May 2024.</p>
 
           </td>
 

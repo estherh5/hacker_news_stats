@@ -10,12 +10,15 @@ function copyStaticFiles() {
     ['src/assets/humans.txt', 'dist/humans.txt'],
     ['src/assets/robots.txt', 'dist/robots.txt'],
     ['src/assets/sitemap.xml', 'dist/sitemap.xml'],
+    // The manifest is emitted into assets/ and names its icons relatively
+    ['src/icon-192.png', 'dist/assets/icon-192.png'],
+    ['src/icon-512.png', 'dist/assets/icon-512.png'],
   ];
 
   return {
     name: 'copy-static-files',
     async closeBundle() {
-      await mkdir(resolve(projectRoot, 'dist'), { recursive: true });
+      await mkdir(resolve(projectRoot, 'dist/assets'), { recursive: true });
       await Promise.all(
         files.map(([source, destination]) =>
           copyFile(

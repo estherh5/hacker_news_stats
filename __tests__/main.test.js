@@ -7,6 +7,7 @@ vi.mock('highcharts', () => ({
 vi.mock('highcharts/highcharts-more', () => ({}));
 vi.mock('highcharts/modules/wordcloud', () => ({}));
 
+import Highcharts from 'highcharts';
 import {
   checkIfLoggedIn,
   createPageFooter,
@@ -117,6 +118,61 @@ describe.each([
   });
 });
 
+
+describe('panel states', () => {
+  const container = () => document.getElementById('post-types-pie');
+
+  test('an empty period says so instead of drawing an empty chart', async () => {
+    fetch.mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue([]) });
+
+    await getPostTypes('hour');
+
+    expect(container().querySelector('.panel-message').textContent)
+      .toBe('No post types in the past hour. Scraping stopped in May 2024.');
+    expect(container().querySelector('.retry-button')).toBeNull();
+    expect(container().querySelector('.loading-image')).toBeNull();
+    expect(container().hasAttribute('aria-busy')).toBe(false);
+  });
+
+  test('a failure with no cache shows Try again, which reloads the panel', async () => {
+    fetch.mockRejectedValueOnce(new Error('offline'));
+
+    await getPostTypes('day');
+
+    const retry = container().querySelector('.retry-button');
+    expect(container().querySelector('[role="alert"]').textContent)
+      .toContain('Couldn\u2019t load the post types.');
+    expect(retry.textContent).toBe('Try again');
+
+    const data = [{ type: 'article', type_count: 3 }];
+    fetch.mockResolvedValueOnce({ ok: true, json: vi.fn().mockResolvedValue(data) });
+    retry.click();
+
+    expect(container().querySelector('.panel-message')).toBeNull();
+    expect(container().querySelector('.loading-image')).not.toBeNull();
+    await vi.waitFor(() =>
+      expect(container().querySelector('.loading-image')).toBeNull());
+    expect(fetch).toHaveBeenLastCalledWith(
+      'http://localhost:5000/api/hacker_news/stats/day/post_types');
+  });
+
+  test('a slow earlier period never overwrites the one picked after it', async () => {
+    let resolveSlow;
+    fetch
+      .mockReturnValueOnce(new Promise((resolve) => { resolveSlow = resolve; }))
+      .mockResolvedValueOnce({ ok: true, json: vi.fn().mockResolvedValue([]) });
+
+    const slow = getPostTypes('week');
+    await getPostTypes('hour');
+    Highcharts.chart.mockClear();
+    resolveSlow({ ok: true, json: vi.fn().mockResolvedValue([{ type: 'ask', type_count: 1 }]) });
+    await slow;
+
+    expect(Highcharts.chart).not.toHaveBeenCalled();
+    expect(container().querySelector('.panel-message').textContent)
+      .toBe('No post types in the past hour. Scraping stopped in May 2024.');
+  });
+});
 
 describe('fleet apps + account menu', () => {
   const verifyUrl = 'https://api.crystalprism.io/api/user/verify';

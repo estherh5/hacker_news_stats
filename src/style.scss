@@ -1,6 +1,9 @@
 $main-font: 'Lekton', sans-serif;
 $cp-font: 'Rajdhani', sans-serif;
 $title-color: #ff8d00;
+/* The orange is 2.2:1 on the phone's yellow; this deeper one is 5.2:1 there,
+   for every orange that sits on yellow (wordmark, titles, selected period) */
+$title-color-mobile: #a35200;
 $primary-color-mobile: #ffff00;
 $secondary-color-mobile: #000000;
 $primary-color-desktop: #3f00ff;
@@ -97,20 +100,30 @@ a:hover {
   color: #b3b3b3;
 }
 
+/* The reset above strips every outline; keyboard focus gets one back */
+a:focus-visible, button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
 #title {
   position: fixed;
-  margin-top: 22px;
+  margin: 22px 0 0;
   top: 0px;
   font-family: 'Cutive Mono', monospace;
-  /* The wordmark starts ~64px in and is ~8.7em wide; on narrow screens it
+  /* The wordmark starts ~64px in and is ~9.2em wide; on narrow screens it
      shrinks so it clears the fleet menu trigger (60px from the edge) by 8px
      or more, even with a 15px classic scrollbar. */
-  font-size: min(28px, calc(11.4vw - 18px));
+  font-size: min(28px, calc(11vw - 18px));
   font-weight: bold;
   font-variant: all-petite-caps;
-  color: $title-color;
-  word-spacing: -10px;
+  color: $title-color-mobile;
+  word-spacing: -0.2em;
   z-index: 2;
+}
+
+#title a {
+  color: inherit;
 }
 
 table {
@@ -161,8 +174,10 @@ td {
 }
 
 #buttons {
-  margin-top: 60px;
-  margin-bottom: 10px;
+  margin-top: 52px;
+  @include flex;
+  @include flex-wrap;
+  @include justify-center;
 }
 
 button {
@@ -170,13 +185,27 @@ button {
   font-size: 13px;
 }
 
-button:focus {
-  outline: none;
+/* Each period is a 44px tap band; the selected one is bold, underlined and
+   in the title color, so the state never rests on color alone */
+#buttons .period {
+  min-height: 44px;
+  padding: 0 10px;
+  text-underline-offset: 6px;
 }
 
-button.selected {
+#buttons .period:hover {
+  text-decoration: underline 1px;
+}
+
+#buttons .period.selected {
   font-weight: bold;
-  color: $title-color;
+  color: $title-color-mobile;
+  text-decoration: underline 2px;
+}
+
+#archive-note {
+  margin: 0 0 8px;
+  font-size: 12px;
 }
 
 #header-bottom-spacer {
@@ -196,7 +225,7 @@ button.selected {
 }
 
 #table-top-margin {
-  height: 99px;
+  height: 140px;
 }
 
 #inner-table-row {
@@ -254,6 +283,40 @@ button.selected {
   opacity: 0.35;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .loading-image {
+    animation: none;
+  }
+}
+
+/* A panel with nothing to chart: an empty period, or a failed load with its
+   own Try again. Same size as a chart, so the row does not jump. */
+.panel-message {
+  max-width: 26ch;
+  @include flex;
+  @include flex-column;
+  @include align-center;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.panel-message p {
+  margin: 0;
+}
+
+.retry-button {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid currentColor;
+}
+
+.retry-button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
 @keyframes rotate {
   from {
     transform: rotateZ(0deg);
@@ -284,10 +347,36 @@ button.selected {
   fill: $secondary-color-mobile !important;
 }
 
+/* Axis labels are links (useHTML), which the rule above does not reach */
+.highcharts-axis-labels a {
+  color: $secondary-color-mobile !important;
+  fill: $secondary-color-mobile !important;
+}
+
 .highcharts-title {
   font-size: 20px !important;
-  color: $title-color !important;
-  fill: $title-color !important;
+  color: $title-color-mobile !important;
+  fill: $title-color-mobile !important;
+}
+
+/* Word cloud and bubbles in inks drawn from each ground, not Highcharts'
+   defaults (40 of 50 words were under 3:1 on yellow). 7:1 or better here. */
+$cloud-inks-mobile: #000000, $primary-color-desktop, #7a2e00, #0b5d1e, #b30059;
+$cloud-inks-desktop: $secondary-color-desktop, #ffff00, #00e7ff, #6eff00, #ffd1a3;
+
+@for $i from 1 through 5 {
+  .highcharts-wordcloud-series .highcharts-point:nth-child(5n + #{$i}) {
+    fill: nth($cloud-inks-mobile, $i) !important;
+  }
+}
+
+.highcharts-bubble-series .highcharts-point {
+  fill: $primary-color-desktop !important;
+}
+
+/* Bubble labels sit inside the bubbles: light on violet, ink on cyan */
+.highcharts-bubble-series .highcharts-data-label text {
+  fill: $secondary-color-desktop !important;
 }
 
 #divider-four {
@@ -419,7 +508,34 @@ button.selected {
   }
 
   #table-top-margin {
-    height: 89px;
+    height: 128px;
+  }
+
+  #buttons .period.selected {
+    color: #ffff00;
+  }
+
+  #title {
+    color: $title-color;
+  }
+
+  .highcharts-title {
+    color: $title-color !important;
+    fill: $title-color !important;
+  }
+
+  @for $i from 1 through 5 {
+    .highcharts-wordcloud-series .highcharts-point:nth-child(5n + #{$i}) {
+      fill: nth($cloud-inks-desktop, $i) !important;
+    }
+  }
+
+  .highcharts-bubble-series .highcharts-point {
+    fill: #00e7ff !important;
+  }
+
+  .highcharts-bubble-series .highcharts-data-label text {
+    fill: $secondary-color-mobile !important;
   }
 
   #inner-table {
@@ -436,7 +552,7 @@ button.selected {
     fill: $secondary-color-desktop !important;
   }
 
-  .highcharts-series, .highcharts-axis-labels text, .highcharts-axis-labels span, .highcharts-legend-item text {
+  .highcharts-series, .highcharts-axis-labels text, .highcharts-axis-labels span, .highcharts-legend-item text, .highcharts-axis-labels a {
     color: $secondary-color-desktop !important;
     fill: $secondary-color-desktop !important;
   }

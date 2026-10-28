@@ -12,7 +12,7 @@ const signInUrl = 'https://account.crystalprism.io/sign-in/';
 let fleetMenu;
 let menuUsername = null;
 let signingOut = false;
-let selectedButton = document.getElementById('hour');
+let selectedButton = document.getElementById('all');
 let pieChart;
 let barChart;
 let wordCloud;
@@ -47,17 +47,12 @@ function initialize() {
   // Check if user is logged into Crystal Prism
   checkIfLoggedIn();
 
-  // Get breakdown of post types from the past hour
-  getPostTypes('hour');
-
-  // Get posts with highest number of comments from the past hour
-  getCommentCounts('hour');
-
-  // Get most frequent words used in comments from the past hour
-  getCommentWords('hour');
-
-  // Get users with highest comment counts from the past hour
-  getUserCommentCounts('hour');
+  /* Load every chart for all time. Scraping stopped in 2024-05 and the API
+  counts the shorter periods back from now, so those are always empty */
+  getPostTypes('all');
+  getCommentCounts('all');
+  getCommentWords('all');
+  getUserCommentCounts('all');
 
   createPageFooter();
 }
@@ -212,12 +207,13 @@ function fetchWithTimeout(url, options) {
 }
 
 
-// Set button as selected when it is clicked and get requested stats
-for (let i = 0; i < document.getElementsByTagName('button').length; i++) {
-  document.getElementsByTagName('button')[i]
-    .addEventListener('click', function() {
+// Set a period button as selected when it is clicked and get its stats
+for (const button of document.querySelectorAll('#buttons .period')) {
+  button.addEventListener('click', function() {
       selectedButton.classList.remove('selected');
+      selectedButton.setAttribute('aria-pressed', 'false');
       this.classList.add('selected');
+      this.setAttribute('aria-pressed', 'true');
       selectedButton = this;
 
       getPostTypes(this.id);
@@ -230,26 +226,61 @@ for (let i = 0; i < document.getElementsByTagName('button').length; i++) {
 }
 
 
+// The latest request per panel; a slower earlier one must not overwrite it
+const latestRequest = {};
+
+const periodNames = {
+  hour: 'the past hour',
+  day: 'the past day',
+  week: 'the past week',
+  all: 'the archive',
+};
+
+
 async function loadStats({
   cacheKey,
   containerId,
   display,
   endpoint,
-  errorMessage,
+  subject,
+  load,
 }, timePeriod) {
   const container = document.getElementById(containerId);
   const storageKey = `${cacheKey}-${timePeriod}`;
+  const requestId = (latestRequest[containerId] ?? 0) + 1;
+  latestRequest[containerId] = requestId;
+
+  container.querySelectorAll('.loading-image, .panel-message')
+    .forEach((element) => element.remove());
   const loadingImage = document.createElement('img');
   loadingImage.src = loadingImageUrl;
   loadingImage.className = 'loading-image';
   loadingImage.alt = 'Loading';
   container.classList.add('is-loading');
+  container.setAttribute('aria-busy', 'true');
   container.appendChild(loadingImage);
 
-  const displayData = (data) => {
+  const settle = (render) => {
+    if (latestRequest[containerId] !== requestId) {
+      return false;
+    }
     container.classList.remove('is-loading');
+    container.removeAttribute('aria-busy');
     loadingImage.remove();
-    display(data);
+    render();
+    return true;
+  };
+
+  const displayData = (data) => {
+    settle(() => {
+      if (data.length === 0) {
+        showPanelMessage(container,
+          `No ${subject} in ${periodNames[timePeriod]}.` +
+          (timePeriod === 'all' ? '' : ' Scraping stopped in May 2024.'));
+      } else {
+        display(data);
+      }
+    });
     return data;
   };
 
@@ -275,13 +306,40 @@ async function loadStats({
       return displayData(JSON.parse(localData));
     }
 
-    container.classList.remove('is-loading');
-    const message = document.createElement('span');
-    message.id = 'error-message';
-    message.textContent = errorMessage;
-    container.replaceChildren(message);
+    settle(() => {
+      showPanelMessage(container,
+        `Couldn’t load the ${subject}. Check your connection.`,
+        () => load(timePeriod));
+    });
     return undefined;
   }
+}
+
+
+// Replace a panel's chart with a message, and a Try again button if given one
+function showPanelMessage(container, text, retry) {
+  const existingChart = Highcharts.charts?.find(
+    (chart) => chart && chart.renderTo === container);
+  existingChart?.destroy();
+
+  const message = document.createElement('div');
+  message.className = 'panel-message';
+  message.setAttribute('role', retry ? 'alert' : 'status');
+
+  const messageText = document.createElement('p');
+  messageText.textContent = text;
+  message.appendChild(messageText);
+
+  if (retry) {
+    const retryButton = document.createElement('button');
+    retryButton.type = 'button';
+    retryButton.className = 'retry-button';
+    retryButton.textContent = 'Try again';
+    retryButton.addEventListener('click', retry);
+    message.appendChild(retryButton);
+  }
+
+  container.replaceChildren(message);
 }
 
 
@@ -292,8 +350,8 @@ function getPostTypes(timePeriod) {
     containerId: 'post-types-pie',
     display: displayPieChart,
     endpoint: 'post_types',
-    errorMessage: 'There was an error loading the post types breakdown. ' +
-      'Please refresh the page.',
+    load: getPostTypes,
+    subject: 'post types',
   }, timePeriod);
 }
 
@@ -377,12 +435,6 @@ function displayPieChart(data) {
     }]
   });
 
-  // Resize chart whenever window is resized
-  window.addEventListener('resize', function() {
-    resize(pieChart, pieContainer);
-    return;
-  }, false);
-
   return;
 }
 
@@ -394,8 +446,8 @@ function getCommentCounts(timePeriod) {
     containerId: 'comment-count-bar',
     display: displayBarChart,
     endpoint: 'posts_highest_comment_count?count=5',
-    errorMessage: 'There was an error loading the posts with the highest ' +
-      'comment counts. Please refresh the page.',
+    load: getCommentCounts,
+    subject: 'posts with comments',
   }, timePeriod);
 }
 
@@ -445,7 +497,7 @@ function displayBarChart(data) {
           events: {
             click: function () {
               window.open('https://news.ycombinator.com/item' +
-                '?id=' + this.key, '_blank');
+                '?id=' + this.key, '_blank', 'noopener');
               return;
             }
           }
@@ -469,7 +521,7 @@ function displayBarChart(data) {
         },
         formatter: function () {
           return '<a href="' + links[this.value] +
-            '" target="blank" style="text-overflow: ellipsis;">' +
+            '" target="_blank" rel="noopener" style="text-overflow: ellipsis;">' +
             this.value + '</a>';
         },
         useHTML: true
@@ -512,12 +564,6 @@ function displayBarChart(data) {
     }]
   });
 
-  // Resize chart whenever window is resized
-  window.addEventListener('resize', function() {
-    resize(barChart, barContainer);
-    return;
-  }, false);
-
   return;
 }
 
@@ -529,8 +575,8 @@ function getCommentWords(timePeriod) {
     containerId: 'comment-word-cloud',
     display: displayWordCloud,
     endpoint: 'comment_words?count=50',
-    errorMessage: 'There was an error loading the most frequently used ' +
-      'comment words. Please refresh the page.',
+    load: getCommentWords,
+    subject: 'comment words',
   }, timePeriod);
 }
 
@@ -597,12 +643,6 @@ function displayWordCloud(words) {
     },
   });
 
-  // Resize chart whenever window is resized
-  window.addEventListener('resize', function() {
-    resize(wordCloud, wordContainer);
-    return;
-  }, false);
-
   return;
 }
 
@@ -614,8 +654,8 @@ function getUserCommentCounts(timePeriod) {
     containerId: 'user-comment-bubble',
     display: displayBubbleChart,
     endpoint: 'users_most_comments?count=5',
-    errorMessage: 'There was an error loading the users with the most ' +
-      'comments. Please refresh the page.',
+    load: getUserCommentCounts,
+    subject: 'users with comments',
   }, timePeriod);
 }
 
@@ -665,7 +705,7 @@ function displayBubbleChart(data) {
           events: {
             click: function () {
               window.open('https://news.ycombinator.com/user' +
-                '?id=' + this.category, '_blank');
+                '?id=' + this.category, '_blank', 'noopener');
               return;
             }
           }
@@ -689,7 +729,7 @@ function displayBubbleChart(data) {
         y: 25,
         formatter: function () {
           return '<a href="' + 'https://news.ycombinator.com/' +
-            'user?id=' + this.value + '" target="blank">' +
+            'user?id=' + this.value + '" target="_blank" rel="noopener">' +
             this.value + '</a>';
         },
         useHTML: true
@@ -741,17 +781,21 @@ function displayBubbleChart(data) {
     }]
   });
 
-  // Resize chart whenever window is resized
-  window.addEventListener('resize', function() {
-    resize(bubbleChart, bubbleContainer);
-    return;
-  }, false);
-
   return;
 }
 
 
-// Resize specified chart to container size on window resize
+// Resize every chart to its container whenever the window is resized
+window.addEventListener('resize', function() {
+  Highcharts.charts?.forEach(function(chart) {
+    if (chart) {
+      resize(chart, chart.renderTo);
+    }
+  });
+}, false);
+
+
+// Resize specified chart to container size
 function resize(chart, container) {
   const height = container.offsetHeight;
   const width = container.offsetWidth;
