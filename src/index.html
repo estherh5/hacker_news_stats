@@ -28,8 +28,9 @@
     <!-- Page title link -->
     <h1 id="title"><a href=".">Hacker News Statsboard</a></h1>
 
-    <!-- Main dashboard table -->
-    <table id="main-table" border="0" cellpadding="0" cellspacing="0">
+    <!-- Main dashboard table (layout only) -->
+    <main id="main">
+    <table id="main-table" role="presentation" border="0" cellpadding="0" cellspacing="0">
       <tbody>
         <!-- Spacer row -->
         <tr id="top-spacer"></tr>
@@ -42,18 +43,17 @@
             <!-- Toggle stats buttons -->
             <div id="buttons" role="group" aria-label="Time period">
               <button id="hour" type="button" class="period" aria-pressed="false">past hour</button>
-              <button id="day" type="button" class="period" aria-pressed="false">past day</button>
+              <button id="day" type="button" class="period selected" aria-pressed="true">past day</button>
               <button id="week" type="button" class="period" aria-pressed="false">past week</button>
-              <button id="all" type="button" class="period selected" aria-pressed="true">all time</button>
+              <button id="all" type="button" class="period" aria-pressed="false">all time</button>
             </div>
-            <p id="archive-note">An archive: scraping stopped in May 2024.</p>
 
           </td>
 
           <!-- Colorful divider tables -->
           <td id="header-bottom-spacer">
 
-            <table width="100%" cellspacing="0" cellpadding="1">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="1">
               <tbody>
                 <tr>
                   <td id="divider-one"></td>
@@ -61,7 +61,7 @@
               </tbody>
             </table>
 
-            <table width="100%" cellspacing="0" cellpadding="1">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="1">
               <tbody>
                 <tr>
                   <td id="divider-two"></td>
@@ -69,7 +69,7 @@
               </tbody>
             </table>
 
-            <table width="100%" cellspacing="0" cellpadding="1">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="1">
               <tbody>
                 <tr>
                   <td id="divider-three"></td>
@@ -85,7 +85,7 @@
         <!-- Stats container row -->
         <tr id="inner-table-row">
           <td>
-            <table id="inner-table" border="0" cellpadding="0" cellspacing="0">
+            <table id="inner-table" role="presentation" border="0" cellpadding="0" cellspacing="0">
               <tbody>
                 <tr class="stat-row">
 
@@ -123,7 +123,7 @@
           <td>
 
             <!-- Colorful bottom table divider -->
-            <table width="100%" cellspacing="0" cellpadding="1">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="1">
               <tbody>
                 <tr>
                   <td id="divider-four"></td>
@@ -136,6 +136,7 @@
 
       </tbody>
     </table>
+    </main>
 
     <!-- Crystal Prism footer (fleet kit, rendered by main.js) -->
     <div id="footer"></div>

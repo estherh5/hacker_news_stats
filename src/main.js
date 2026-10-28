@@ -1,6 +1,7 @@
 import Highcharts from 'highcharts';
 import 'highcharts/highcharts-more';
 import 'highcharts/modules/wordcloud';
+import 'highcharts/modules/accessibility';
 import loadingImageUrl from './images/loading.svg';
 import './fleet/fleet-menu.js';
 import fleetFallback from './fleet/fleet-fallback.json';
@@ -12,7 +13,7 @@ const signInUrl = 'https://account.crystalprism.io/sign-in/';
 let fleetMenu;
 let menuUsername = null;
 let signingOut = false;
-let selectedButton = document.getElementById('all');
+let selectedButton = document.getElementById('day');
 let pieChart;
 let barChart;
 let wordCloud;
@@ -47,12 +48,11 @@ function initialize() {
   // Check if user is logged into Crystal Prism
   checkIfLoggedIn();
 
-  /* Load every chart for all time. Scraping stopped in 2024-05 and the API
-  counts the shorter periods back from now, so those are always empty */
-  getPostTypes('all');
-  getCommentCounts('all');
-  getCommentWords('all');
-  getUserCommentCounts('all');
+  // Load every chart for the past day, the default period
+  getPostTypes('day');
+  getCommentCounts('day');
+  getCommentWords('day');
+  getUserCommentCounts('day');
 
   createPageFooter();
 }
@@ -233,7 +233,7 @@ const periodNames = {
   hour: 'the past hour',
   day: 'the past day',
   week: 'the past week',
-  all: 'the archive',
+  all: 'all time',
 };
 
 
@@ -252,6 +252,7 @@ async function loadStats({
 
   container.querySelectorAll('.loading-image, .panel-message')
     .forEach((element) => element.remove());
+  container.parentElement.querySelector('.stale-note')?.remove();
   const loadingImage = document.createElement('img');
   loadingImage.src = loadingImageUrl;
   loadingImage.className = 'loading-image';
@@ -271,14 +272,16 @@ async function loadStats({
     return true;
   };
 
-  const displayData = (data) => {
+  const displayData = (data, stale = false) => {
     settle(() => {
       if (data.length === 0) {
         showPanelMessage(container,
-          `No ${subject} in ${periodNames[timePeriod]}.` +
-          (timePeriod === 'all' ? '' : ' Scraping stopped in May 2024.'));
+          `No ${subject} in ${periodNames[timePeriod]}.`);
       } else {
         display(data);
+      }
+      if (stale) {
+        showStaleNote(container, () => load(timePeriod));
       }
     });
     return data;
@@ -303,7 +306,7 @@ async function loadStats({
   } catch (error) {
     const localData = localStorage.getItem(storageKey);
     if (localData) {
-      return displayData(JSON.parse(localData));
+      return displayData(JSON.parse(localData), true);
     }
 
     settle(() => {
@@ -340,6 +343,27 @@ function showPanelMessage(container, text, retry) {
   }
 
   container.replaceChildren(message);
+}
+
+
+// Say under a panel that it shows a saved copy because the API was unreachable
+function showStaleNote(container, retry) {
+  const note = document.createElement('div');
+  note.className = 'stale-note';
+  note.setAttribute('role', 'status');
+
+  const noteText = document.createElement('p');
+  noteText.textContent = 'Saved copy. Couldn\u2019t reach the server.';
+  note.appendChild(noteText);
+
+  const retryButton = document.createElement('button');
+  retryButton.type = 'button';
+  retryButton.className = 'retry-button';
+  retryButton.textContent = 'Try again';
+  retryButton.addEventListener('click', retry);
+  note.appendChild(retryButton);
+
+  container.insertAdjacentElement('afterend', note);
 }
 
 
@@ -484,8 +508,9 @@ function displayBarChart(data) {
         }
       },
       reflow: 'true',
-      type: 'column',
-      marginLeft: 80
+      // Room for the last tick label at the right edge
+      spacingRight: 24,
+      type: 'bar'
     },
     credits: {
       enabled: false
@@ -513,16 +538,19 @@ function displayBarChart(data) {
     },
     xAxis: {
       type: 'category',
+      title: {
+        text: null
+      },
       labels: {
-        rotation: -45,
+        // Whole titles, wrapped over up to three lines beside each bar
+        formatter: function () {
+          return '<a class="bar-title" href="' + links[this.value] +
+            '" target="_blank" rel="noopener">' + this.value + '</a>';
+        },
         style: {
           fontFamily: 'Lekton, sans-serif',
-          textOverflow: 'ellipsis'
-        },
-        formatter: function () {
-          return '<a href="' + links[this.value] +
-            '" target="_blank" rel="noopener" style="text-overflow: ellipsis;">' +
-            this.value + '</a>';
+          textOverflow: 'none',
+          width: Math.round(barContainer.offsetWidth * 0.45) + 'px'
         },
         useHTML: true
       }
@@ -531,11 +559,17 @@ function displayBarChart(data) {
       allowDecimals: false,
       min: 0,
       title: {
-        text: ''
-      },
-      labels: {
+        text: 'Comments',
         style: {
           fontFamily: 'Lekton, sans-serif'
+        }
+      },
+      labels: {
+        // Ticks are short numbers; never ellipsize them
+        overflow: 'allow',
+        style: {
+          fontFamily: 'Lekton, sans-serif',
+          textOverflow: 'none'
         }
       }
     },
@@ -554,7 +588,6 @@ function displayBarChart(data) {
       data: barData,
       dataLabels: {
         enabled: true,
-        y: 30,
         style: {
           fontFamily: 'Lekton, sans-serif',
           fontWeight: 'normal',
@@ -719,8 +752,21 @@ function displayBubbleChart(data) {
       },
       text: 'Users with most comments'
     },
+    subtitle: {
+      text: 'Bubble size: words written',
+      style: {
+        cursor: 'default',
+        fontFamily: 'Lekton, sans-serif'
+      }
+    },
     xAxis: {
       categories: names,
+      title: {
+        text: 'User',
+        style: {
+          fontFamily: 'Lekton, sans-serif'
+        }
+      },
       labels: {
         rotation: -45,
         style: {
@@ -738,7 +784,10 @@ function displayBubbleChart(data) {
     yAxis: {
       allowDecimals: false,
       title: {
-        text: ''
+        text: 'Comments',
+        style: {
+          fontFamily: 'Lekton, sans-serif'
+        }
       },
       labels: {
         style: {
@@ -766,7 +815,9 @@ function displayBubbleChart(data) {
       marker: {
         fillOpacity: 0.8
       },
-      minSize: '10%',
+      // Big enough that the smallest bubble still holds its word count
+      minSize: '18%',
+      maxSize: '36%',
       name: 'User comment count',
       data: bubbleData,
       dataLabels: {

@@ -6,6 +6,7 @@ vi.mock('highcharts', () => ({
 }));
 vi.mock('highcharts/highcharts-more', () => ({}));
 vi.mock('highcharts/modules/wordcloud', () => ({}));
+vi.mock('highcharts/modules/accessibility', () => ({}));
 
 import Highcharts from 'highcharts';
 import {
@@ -128,7 +129,7 @@ describe('panel states', () => {
     await getPostTypes('hour');
 
     expect(container().querySelector('.panel-message').textContent)
-      .toBe('No post types in the past hour. Scraping stopped in May 2024.');
+      .toBe('No post types in the past hour.');
     expect(container().querySelector('.retry-button')).toBeNull();
     expect(container().querySelector('.loading-image')).toBeNull();
     expect(container().hasAttribute('aria-busy')).toBe(false);
@@ -156,6 +157,33 @@ describe('panel states', () => {
       'http://localhost:5000/api/hacker_news/stats/day/post_types');
   });
 
+  test('a saved copy shown after a failure is marked, with Try again', async () => {
+    localStorage.setItem('hn-post-types-week',
+      JSON.stringify([{ type: 'article', type_count: 2 }]));
+    fetch.mockRejectedValueOnce(new Error('offline'));
+
+    await getPostTypes('week');
+
+    const note = container().parentElement.querySelector('.stale-note');
+    expect(Highcharts.chart).toHaveBeenCalled();
+    expect(note.textContent).toContain('Saved copy. Couldn\u2019t reach the server.');
+
+    fetch.mockResolvedValueOnce({ ok: true, json: vi.fn().mockResolvedValue([]) });
+    note.querySelector('.retry-button').click();
+    expect(container().parentElement.querySelector('.stale-note')).toBeNull();
+    await vi.waitFor(() =>
+      expect(container().querySelector('.panel-message')).not.toBeNull());
+  });
+
+  test('fresh data is never marked as a saved copy', async () => {
+    fetch.mockResolvedValue({ ok: true,
+      json: vi.fn().mockResolvedValue([{ type: 'show', type_count: 1 }]) });
+
+    await getPostTypes('day');
+
+    expect(container().parentElement.querySelector('.stale-note')).toBeNull();
+  });
+
   test('a slow earlier period never overwrites the one picked after it', async () => {
     let resolveSlow;
     fetch
@@ -170,7 +198,7 @@ describe('panel states', () => {
 
     expect(Highcharts.chart).not.toHaveBeenCalled();
     expect(container().querySelector('.panel-message').textContent)
-      .toBe('No post types in the past hour. Scraping stopped in May 2024.');
+      .toBe('No post types in the past hour.');
   });
 });
 

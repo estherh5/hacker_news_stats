@@ -203,9 +203,10 @@ button {
   text-decoration: underline 2px;
 }
 
-#archive-note {
-  margin: 0 0 8px;
-  font-size: 12px;
+#main {
+  width: 100%;
+  @include flex;
+  @include justify-center;
 }
 
 #header-bottom-spacer {
@@ -246,8 +247,9 @@ button {
 }
 
 .stat-cell {
+  width: 100%;
   @include flex;
-  @include flex-row;
+  @include flex-column;
   @include align-center;
   @include justify-center;
 }
@@ -306,6 +308,23 @@ button {
   margin: 0;
 }
 
+/* Under a panel drawn from the last saved copy because the API failed */
+.stale-note {
+  max-width: 300px;
+  margin: -4px 10px 10px;
+  @include flex;
+  @include flex-wrap;
+  @include align-center;
+  @include justify-center;
+  gap: 4px 12px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.stale-note p {
+  margin: 0;
+}
+
 .retry-button {
   min-height: 44px;
   padding: 0 18px;
@@ -343,6 +362,19 @@ button {
 
 .highcharts-series, .highcharts-axis-labels text, .highcharts-axis-labels span, .highcharts-legend-item text {
   font-family: $main-font;
+  color: $secondary-color-mobile !important;
+  fill: $secondary-color-mobile !important;
+}
+
+/* Bar titles wrap beside their bars instead of truncating */
+.highcharts-axis-labels a.bar-title {
+  display: block;
+  white-space: normal;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.highcharts-axis-title, .highcharts-subtitle {
   color: $secondary-color-mobile !important;
   fill: $secondary-color-mobile !important;
 }
@@ -552,8 +584,17 @@ $cloud-inks-desktop: $secondary-color-desktop, #ffff00, #00e7ff, #6eff00, #ffd1a
     fill: $secondary-color-desktop !important;
   }
 
-  .highcharts-series, .highcharts-axis-labels text, .highcharts-axis-labels span, .highcharts-legend-item text, .highcharts-axis-labels a {
+  .highcharts-series, .highcharts-axis-labels text, .highcharts-axis-labels span, .highcharts-legend-item text, .highcharts-axis-labels a, .highcharts-axis-title, .highcharts-subtitle {
     color: $secondary-color-desktop !important;
     fill: $secondary-color-desktop !important;
+  }
+}
+
+/* Wide screens: the four charts as a 2x2 grid, not one long column */
+@media only screen and (min-width: 900px) {
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-items: center;
   }
 }
