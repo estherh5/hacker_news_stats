@@ -515,7 +515,7 @@ describe('fleet footer', () => {
     expect(footers[0].parentElement.id).toBe('footer');
     const links = Array.from(footers[0].querySelectorAll('a'));
     expect(links.map((a) => a.textContent)).toEqual([
-      `© 2017–${new Date().getFullYear()} Crystal Prism`,
+      `© ${new Date().getFullYear()} Crystal Prism`,
     ]);
     expect(links.map((a) => a.getAttribute('href'))).toEqual([
       'https://crystalprism.io',
